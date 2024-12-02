@@ -6,19 +6,10 @@ AHKMenu.Add("&Postion Time && AE API", Move)
 AHKMenu.Add("&Lily SCADA", OpenLily)
 AHKMenu.Add("Open &DB", OpenDB)
 AHKMenu.Add("Data Pull Script", DataPull)
-AHKMenu.Add("Email Notification (set to BA)", EmailNoti)
+AHKMenu.Add("Email Notification (Not Working/Don't Use)", EmailNoti)
 AHKMenu.Add("Daily Email App", DailyEmail)
 AHKMenu.Add("Wind Monitoring App", WindApp)
-AHKMenu.Add("AE API Data DB", AEDB)
 
-
-
-
-AEDB(Item, *)
-{
-   Run "C:\Users\OMOPS\OneDrive - Narenco\Documents\AE API DB.accdb"
-   MsgBox("Don't Change the layout of the tables inside this DB")
-}
 
 WindApp(Item, *)
 {
@@ -34,7 +25,6 @@ LilyBack(Item, *)
 {
    Run "G:\Shared drives\O&M\NCC Automations\Emails\Move Lily Back.ahk"
 }
-
 
 OpenLily(Item, *)
 {
@@ -77,127 +67,50 @@ Close(Item, *)
 Move(Item, *)
 {
    WinMove(1095, 204, 308, 314, "Timestamps")
-   WinMove(1389, 204, 250, 276, "Alert Windows Info")
-   WinMove(1252, 526, , , "Personnel On-Site")
-   WinMove(3506, "-621", 335, 585, "Soltage")
-   WinMove(3251, "-510", 267, 510, "NCEMC")
-   WinMove(3370, "-2153", 464, 1535, "NARENCO")
-   WinMove(1916, "-2157", 838, 2060, "SOL River")
-   WinMove(2758, "-2154", 540, 1660, "Harrison Street")
-   WinMove(1986, "-1030", 364, 1032, "Site Data")
+   WinMove(1389, 204, 250, 314, "Alert Windows Info")
+   WinMove(1093, 526, , , "Personnel On-Site")
+   WinMove(3039, "-874", , , "Soltage")
+   WinMove(3421, "-849", , , "NCEMC")
+   WinMove(24, "-2132", , , "NARENCO")
+   WinMove(1930, "-2133", , , "SOL River")
+   WinMove(697, "-2128", , , "Harrison Street")
+   WinMove(1302, "-1080", , , "Site Data")
    WinMove(1625, 204, 284, 327, "NCC Desk Functions")
 
-   WinMove(757, 498, 500, 600, "Notified events")
+WinMove(36, -594, 500, 584, "Notified events")
+
+
 }
 
 ^!z::AHKMenu.Show
 
-f2::Send("^x")
-f3::Send("^v")
+;FUNCITON KEY REASSIGNMENT
 f1::{
 CoordMode "Mouse", "Screen"
 MouseMove 950, 550
 }
 
 
-
-f4::{
-   Send("^x")
-Sleep 100
-Send("{Down}")
-Send("{Down}")
-Sleep 1
-Send("^v")
-}
-f6::{
-   IB := InputBox("Input Site Name for DB", "Adding INV Table to DB")
-   Site := IB.Value
-   lpctIB := InputBox("How many Inverters are there?", "Adding INV Table to DB")
-   Loopcnt := lpctIB.Value
-   INVct := 1
-Loop Loopcnt {
-   WinActivate("Access - AE API DB : Database- C:\Users\OMOPS\OneDrive - Narenco\Documents\AE API DB.accdb (Access 2007 - 2016 file format)")
-   CoordMode "Mouse", "Window"
-   Click 70, 548
-   Sleep 300
-   Send "^v"
-   Sleep 700
-   TableName := Site " INV " INVct " Data"
-   SendInput(TableName)
-   INVct:= ++INVct
-   Sleep 500
-   WinActivate("Paste Table As")
-   Click 61, 104
-   Sleep 400
-   Send "{Enter}"
-   Sleep 700
-}
-
-
-
-}
-
-f5::{
-Result := MsgBox("Does Charter need to be signed in?", "Refresh Charter", 4)
-if Result = "Yes"
-   {   
-   BlockInput "On"
-      WinExist("Sunny Portal powered by ennexOS - Google Chrome")
-      WinActivate "Sunny Portal powered by ennexOS - Google Chrome"
-      CoordMode "Mouse", "Window"
-      Sleep 250
-      Click "311", "700"
-      Sleep 100
-      Send('{Enter}')
-      Sleep 4000
-      Click "311", "700"
-      Sleep 300
-      Send('{Enter}')
-      Click 323, 899
-
-   ;When Scheduled outages occur the Login button moves
-
-   }
-else {
-   BlockInput "On"
-   CoordMode "Mouse", "Window"
-}
-
-
+f2::{
 ;Cloud Map REFRESH
+   CoordMode "Mouse", "Window"
    WinActivate "Cloud cover map LIVE: ✔️ Where is it cloudy? ⛅️ - Google Chrome"
-   Sleep 250
-   Send "{f11}"
    Sleep 1000
    ;Refresh
-   Click 99, 63
-
+   Send "{f5}"
 
 ;Zoom on Service area
-   if WinWait("Cloud cover map LIVE: ✔️ Where is it cloudy? ⛅️ - Google Chrome", , 10)
-   {
-      WinActivate "Cloud cover map LIVE: ✔️ Where is it cloudy? ⛅️ - Google Chrome"
-      Sleep 8000
-      Click 1552, 769
-      Sleep 500
-      Send "{WheelUp}"
-   }
-   else
-      MsgBox "error, good luck, lol"
-
-   Sleep 2000
-   Send "{f11}"
+   Sleep 5000
+   Click 879, 874
    Sleep 500
-
-
-WinActivate "Personnel On-Site"
+   Send "{WheelUp}"
+   ;Sleep 4000
+   ;This Won't hold onto the little Map in the Website
+   ;MouseClickDrag "L", 871, 843, 623, 812, 100
 
 ;Return Mouse to main screen
    Sleep 100
    CoordMode "Mouse", "Screen"
    MouseMove "812", "1051"
-   BlockInput "Off"
-
 Return
 }
-
