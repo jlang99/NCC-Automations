@@ -47,6 +47,8 @@ AHKMenu.Add("Tracker Check", Tracker)
 AHKMenu.Add("CB Check", CBCheck)
 AHKMenu.Add("Shift Summary Email App", EmailApp)
 AHKMenu.Add("Change Shift Summary Query Start", ShiftSumStart)
+AHKMenu.Add("WO Input Doc", WOInput)
+AHKMenu.Add("NCC WO's Input && Notify", WOInputTask)
 
 
 
@@ -92,7 +94,36 @@ f1::{
 ^+!z::LilyCBMenu.Show
 
 ;WO Help
-^#j::Send(A_MM "/" A_DD " - JL - ")
+^#j::Send(
+    "{Ctrl down}b{Ctrl up}NCC--{Ctrl down}b{Ctrl up}`n"
+    "Summary of issue: " A_MM "/" A_DD " - JL - `n"
+    "Can we resolve the issue Remotely? (Y or N) N`n"
+    "(If applicable) How was the issue resolved?`n"
+    "NCC Time: 15 Mins`n"
+    "Start Date: " A_MM "/" A_DD "/" A_YYYY "`n"
+    "Start Time: " A_Hour ":" A_Min "`n"
+    "`n"
+    "{Ctrl down}b{Ctrl up}Tech--{Ctrl down}b{Ctrl up}`n"
+    "Before photos (Y or N):`n"
+    "Reason for equipment fault:`n"
+    "During repair photos (Y or N):`n"
+    "Summary of work performed:`n"
+    "After photos (Y or N):`n"
+    "Site Vegetation (Good or Bad)? Be sure to take photos:`n"
+    "Time on site:`n"
+    "Round trip travel time:`n"
+    "Mileage:`n"
+    "`n"
+    "{Ctrl down}b{Ctrl up}If work order is marked Complete --{Ctrl down}b{Ctrl up}`n"
+    "End Date:`n"
+    "End Time:`n"
+    "`n"
+    "{Ctrl down}b{Ctrl up}If Return Trip is needed—{Ctrl down}b{Ctrl up}`n"
+    "Tools needed to complete work:`n"
+    "Parts to be ordered (Include pics, SN/manufacturer part number):`n"
+    "Equipment needed to complete work:`n"
+    "Estimated time for repair:"
+)
 
 ;Emails
 ^#b::Send("brandon.arrowood@narenco.com")
@@ -142,11 +173,11 @@ Sleep 250
 Click
 Sleep 250
 WinActivate("Access - NCC 039 : Database- G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb (Access 2007 - 2016 file format)")
-Click 1117, 509
+Click 1113, 531
 Sleep 200
-Click 1120, 753
+Click 1116, 771
 Sleep 200
-Click 1118, 979
+Click 1103, 995
 }
 
 ^#r::{
@@ -214,15 +245,13 @@ f8::{
         Sleep 200
         Run "https://elks.aderisenergy.com/dashboard"
         Sleep 200
-        Run "https://locusnoc.datareadings.com/charting?end=2022-12-21T23-59-59&fields=c-2519406-W_avg-line*c-2519406-W_m_avg-line&siteId=3774597&start=2022-12-21T00-00-00&tz=US-Pacific"
-        Sleep 200
         Run "https://ennexos.sunnyportal.com/8521253/dashboard"
         Sleep 200
         Run "https://x46.emaint.com/wc.dll?X3~emproc~x3Hubv2#/WORK/__new/ADD"
         Sleep 200
         Run "https://events.x-elio.com/list.php"
         Sleep 200
-        Run "https://solar.sitecapture.com/app/#/project/search/nc?savedSearchId=25828"
+        Run "https://earth.google.com/web/@34.82626483,-79.87550174,-39.97826276a,1240758.82427394d,30.00018764y,0h,0t,0r/data=CgRCAggBMikKJwolCiExQ19lVkZBUnRWMi00NlJzbVZkSTM2dHVVay1CVnMxVHIgAToDCgEwQgIIAEoICJXPs44HEAE"
         Sleep 200
         Run "https://drive.google.com/drive/u/0/my-drive"
         Sleep 200
@@ -234,9 +263,6 @@ f8::{
         Sleep 200
         ; CB Issue Sheet
         Run "https://docs.google.com/spreadsheets/d/1RGUwARwDdfDoC8VcNQgb5KC6gPOA-rcMaPsu6vlzg9o/edit?gid=1611132963#gid=1611132963"
-        Sleep 200
-        ;Open Issue Tracker
-        Run "https://docs.google.com/spreadsheets/d/1zTAHG7iNR_sdpLajTrdHObhXcL_ylMxl4ild4nbVtSI/edit#gid=0"
         Sleep 200
         ;Site List
         Run "https://docs.google.com/spreadsheets/d/1GdO46Jt304OLf-H-dGJ3MQQUbGbd8lEUAuOewhDdIWM/edit#gid=1126541456"
@@ -314,6 +340,15 @@ f8::{
         Click 374, 277
         WinWait("RUN FORECAST PROCEDURE", , 10)
         Click 190, 120
+}
+
+WOInputTask(Item, *)
+{
+    Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\WO Logbook Tool.py"
+}
+WOInput(Item, *)
+{
+    Run "G:\Shared drives\Narenco Projects\O&M Projects\NCC\Procedures\Tech WO Input.docx"
 }
 
 EmailApp(Item, *)
@@ -3494,15 +3529,13 @@ Run "https://apps.alsoenergy.com/powertrack/S63226/overview/dashboard"
 Sleep 200
 Run "https://elks.aderisenergy.com/dashboard"
 Sleep 200
-Run "https://locusnoc.datareadings.com/charting?end=2022-12-21T23-59-59&fields=c-2519406-W_avg-line*c-2519406-W_m_avg-line&siteId=3774597&start=2022-12-21T00-00-00&tz=US-Pacific"
-Sleep 200
 Run "https://ennexos.sunnyportal.com/8521253/dashboard"
 Sleep 200
 Run "https://x46.emaint.com/wc.dll?X3~emproc~x3Hubv2#/WORK/__new/ADD"
 Sleep 200
 Run "https://events.x-elio.com/list.php"
 Sleep 200
-Run "https://solar.sitecapture.com/app/#/project/search/nc?savedSearchId=25828"
+Run "https://earth.google.com/web/@34.82626483,-79.87550174,-39.97826276a,1240758.82427394d,30.00018764y,0h,0t,0r/data=CgRCAggBMikKJwolCiExQ19lVkZBUnRWMi00NlJzbVZkSTM2dHVVay1CVnMxVHIgAToDCgEwQgIIAEoICJXPs44HEAE"
 Sleep 200
 Run "https://drive.google.com/drive/u/0/my-drive"
 Sleep 200
@@ -3515,11 +3548,6 @@ Sleep 200
 ; CB Issue Sheet
 Run "https://docs.google.com/spreadsheets/d/1RGUwARwDdfDoC8VcNQgb5KC6gPOA-rcMaPsu6vlzg9o/edit?gid=1611132963#gid=1611132963"
 Sleep 200
-
-;Open Issue Tracker
-Run "https://docs.google.com/spreadsheets/d/1zTAHG7iNR_sdpLajTrdHObhXcL_ylMxl4ild4nbVtSI/edit#gid=0"
-Sleep 200
-
 ;Site List
 Run "https://docs.google.com/spreadsheets/d/1GdO46Jt304OLf-H-dGJ3MQQUbGbd8lEUAuOewhDdIWM/edit#gid=1126541456"
 Sleep 200

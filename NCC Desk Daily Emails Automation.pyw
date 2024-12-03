@@ -356,7 +356,7 @@ def shift_Summary():
         if dickey not in activity_data:
             if row[8]:
                 worktype = str(row[7]) if row[7] else ''
-                workLog = ' | '.join((worktype, str(row[8])))
+                workLog = ' | '.join((worktype, str(row[8]) if row[8] else ''))
             else:
                 workLog = ''
             if row[3] and row[4] and row[5] and row[6]:
@@ -364,7 +364,7 @@ def shift_Summary():
             else:
                 siteAccess = ''
             if row[13]:
-                issueLog = ' | '.join((str(row[9]), str(row[10]), str(row[11]), str(row[12]), str(row[13])))
+                issueLog = ' | '.join((str(row[9]) if row[9] else '', str(row[10]) if row[10] else '', str(row[11]) if row[11] else '', str(row[12]) if row[12] else '', str(row[13]) if row[13] else ''))
             else:
                 issueLog = ''
             print(activitylog_id)
@@ -658,7 +658,7 @@ def check_to_send():
     if currenttime >= target_time.time():
         shift_Summary()
     else: #Check Every Minute
-        root.after(57000, lambda: check_to_send())
+        root.after(56000, lambda: check_to_send())
 
 
 

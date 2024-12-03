@@ -92,10 +92,11 @@ WinRestore
 Sleep 250
 WinMove "-1925", "-1089", 1936, 1096
 Sleep 2000
-Click 324, 699
-Sleep 200
-Send('{Enter}')
 WinMaximize
+Sleep 500
+Click 208, 488
+Sleep 2000
+Click 951, 863
 ;Sleep 1000
 ;WinMove "-1925", "-1089", 1936, 1096, "Sunny Portal powered by ennexOS - Google Chrome"
 }
