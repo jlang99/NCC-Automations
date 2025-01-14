@@ -92,81 +92,12 @@ def send_lily_email(solar_production, irradiance, updates):
     else:
         msg['To'] = ' , '.join(recipients)
     ctime = datetime.now()
-    if ctime.hour == 9 and ctime.minute > 15 and ctime.minute < 45:
-        msg['Subject'] = '9:30 Lily Solar Update'
-        when = "9:30"
-    elif (ctime.hour == 9 and ctime.minute <= 15) or (ctime.hour == 8 and ctime.minute >= 45):
-        msg['Subject'] = '9:00 Lily Solar Update'
-        when = "9:00"
-
-    elif ctime.hour == 10 and ctime.minute > 15 and ctime.minute < 45:
-        msg['Subject'] = '10:30 Lily Solar Update'
-        when = "10:30"
-    elif (ctime.hour == 10 and ctime.minute <= 15) or (ctime.hour == 9 and ctime.minute >= 45):
-        msg['Subject'] = '10:00 Lily Solar Update'
-        when = "10:00"
-
-    elif ctime.hour == 11 and ctime.minute > 15 and ctime.minute < 45:
-        msg['Subject'] = '11:30 Lily Solar Update'
-        when = "11:30"
-    elif (ctime.hour == 11 and ctime.minute <= 15) or (ctime.hour == 10 and ctime.minute >= 45):
-        msg['Subject'] = '11:00 Lily Solar Update'
-        when = "11:00"
-
-    elif ctime.hour == 12 and ctime.minute > 15 and ctime.minute < 45:
-        msg['Subject'] = '12:30 Lily Solar Update'
-        when = "12:30"
-    elif (ctime.hour == 12 and ctime.minute <= 15) or (ctime.hour == 11 and ctime.minute >= 45):
-        msg['Subject'] = '12:00 Lily Solar Update'
-        when = "12:00"
-
-    elif ctime.hour == 13 and ctime.minute > 15 and ctime.minute < 45:
-        msg['Subject'] = '13:30 Lily Solar Update'
-        when = "13:30"
-    elif (ctime.hour == 13 and ctime.minute <= 15) or (ctime.hour == 12 and ctime.minute >= 45):
-        msg['Subject'] = '13:00 Lily Solar Update'
-        when = "13:00"
-
-    elif ctime.hour == 14 and ctime.minute > 15 and ctime.minute < 45:
-        msg['Subject'] = '14:30 Lily Solar Update'
-        when = "14:30"
-    elif (ctime.hour == 14 and ctime.minute <= 15) or (ctime.hour == 13 and ctime.minute >= 45):
-        msg['Subject'] = '14:00 Lily Solar Update'
-        when = "14:00"
-
-    elif ctime.hour == 15 and ctime.minute > 15 and ctime.minute < 45:
-        msg['Subject'] = '15:30 Lily Solar Update'
-        when = "15:30"
-    elif (ctime.hour == 15 and ctime.minute <= 15) or (ctime.hour == 14 and ctime.minute >= 45):
-        msg['Subject'] = '15:00 Lily Solar Update'
-        when = "15:00"
-
-    elif ctime.hour == 16 and ctime.minute > 15 and ctime.minute < 45:
-        msg['Subject'] = '16:30 Lily Solar Update'
-        when = "16:30"
-    elif (ctime.hour == 16 and ctime.minute <= 15) or (ctime.hour == 15 and ctime.minute >= 45):
-        msg['Subject'] = '16:00 Lily Solar Update'
-        when = "16:00"
-
-    elif ctime.hour == 17 and ctime.minute > 15 and ctime.minute < 45:
-        msg['Subject'] = '17:30 Lily Solar Update'
-        when = "17:30"
-    elif (ctime.hour == 17 and ctime.minute <= 15) or (ctime.hour == 16 and ctime.minute >= 45):
-        msg['Subject'] = '17:00 Lily Solar Update'
-        when = "17:00"
-
-    elif ctime.hour == 18 and ctime.minute > 15 and ctime.minute < 45:
-        msg['Subject'] = '18:30 Lily Solar Update'
-        when = "18:30"
-    elif (ctime.hour == 18 and ctime.minute <= 15) or (ctime.hour == 17 and ctime.minute >= 45):
-        msg['Subject'] = '18:00 Lily Solar Update'
-        when = "18:00"
-    elif ctime.hour == 18 and ctime.minute > 45:
-        msg['Subject'] = '19:00 Lily Solar Update'
-        when = "19:00"
-    elif ctime.hour == 19 and ctime.minute < 15:
-        msg['Subject'] = '19:00 Lily Solar Update'
-        when = "19:00"
+    if 45 > ctime.minute > 15:
+        mins = '30'
+    else:
+        mins = '00'
+    msg['Subject'] = f'{ctime.hour}:{mins} Lily Solar Update'
+    when = f'{ctime.hour}:{mins}'
 
     today = ctime.strftime("%m/%d/%y")
 
@@ -679,9 +610,9 @@ if open_day > 4:
     ub3var.set(14)
     ub4var.set(1)
 elif datetime.now().month in [10, 11, 12, 1, 2, 3]:
-    lb3var.set(16)
+    lb3var.set(15)
     lb4var.set(0)
-    ub3var.set(16)
+    ub3var.set(15)
     ub4var.set(1)
 else:
     lb3var.set(17)

@@ -61,6 +61,12 @@ tracker_data_dict = {
         11: [35, 34, 33], 12: [32, 31, 30], 13: [83, 84, 85, 86], 14: [80, 81, 82], 15: [76, 77, 78, 79], 16: [71, 72, 73, 74], 17: [68, 69, 70], 18: [64, 65, 66, 67], 19: [61, 62, 63], 20: [57, 58, 59, 60],
         21: [53, 54, 55, 56], 22: [50, 51, 52], 23: [46, 47, 48, 49], 24: [45, 44, 43, 75]
     },
+    "Elk Solar": {
+        1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: [], 10: [],
+        11: [], 12: [], 13: [], 14: [], 15: [], 16: [], 17: [], 18: [], 19: [], 20: [],
+        21: [], 22: [], 23: [], 24: [], 25: [], 26: [], 27: [], 28: [], 29: [], 30: [],
+        31: [], 32: [], 33: [], 34: [], 35: [], 36: [], 37: [], 38: [], 39: [], 40: []
+    },
     "Gray Fox Solar": {
         1: [1, 2, 3, 4], 2: [5, 6, 7, 8], 3: [9, 10, 11, 12], 4: [13, 14, 15, 16], 5: [20, 17, 18, 19], 6: [24, 21, 22, 23], 7: [28, 25, 26, 27], 8: [32, 29, 30, 31], 9: [36, 33, 34, 35], 10: [40, 37, 38, 39],
         11: [41, 42, 43, 44], 12: [47, 48, 45, 46], 13: [51, 49, 50], 14: [55, 52, 53, 54], 15: [58, 59, 56, 57], 16: [60, 61, 62], 17: [66, 63, 64, 65], 18: [69, 67, 68, 70], 19: [73, 71, 72], 20: [74, 75, 76, 77],
@@ -231,7 +237,7 @@ def process_file(file_path):
                 days4 = pd.to_numeric(days4, errors='coerce') #Sets to a number, correcting negative values
                 
 
-                #Need Patterns for Upson Whitehall Harding Gray Fox and Washington atleast
+                #Tracker Number Regex Pattern
                 if sheet_name in ["Bulloch 1A", "Bulloch 1B", "Richmond", "McLean", "Upson"]:
                     pattern = r"A\d S (\d+)"
                 elif sheet_name in ['Hickory Solar, LLC']:
@@ -252,6 +258,8 @@ def process_file(file_path):
                     pattern = r"\(ST(\d)\).*TCU (\d+)"
                 elif sheet_name in ['Whitetail', "Ogburn Solar Farm", "Hickson Solar Farm"]:
                     pattern = r"(\d+)"
+                elif sheet_name in ['Elk Solar']:
+                    pattern = r"Postion (\d+)"
 
 
 
