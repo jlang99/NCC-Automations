@@ -92,13 +92,14 @@ location_dict = {
 }
 
 customers_dict = {
-    'slr': ['Bulloch 1A', 'Bulloch 1B', 'Elk', 'GRay Fox', 'Harding', 'Mclean', 'Richmond Cadle', 'Shorthorn', 'Sunflower', 'Upson', 'Upson Ranch', 'Warbler', 'Washington', 'Whitehall', 'Whitetail'],
+    'slr': ['Bulloch 1A', 'Bulloch 1B', 'Elk', 'Gray Fox', 'Harding', 'Mclean', 'Richmond Cadle', 'Shorthorn', 'Sunflower', 'Upson', 'Upson Ranch', 'Warbler', 'Washington', 'Whitehall', 'Whitetail'],
     'solt': ['Conetoe 1', 'Duplin', 'Wayne I', 'Wayne II', 'Wayne III'],
     'nar': ['Bluebird', 'Cardinal', 'Cougar', 'Cherry Blossom', 'Harrison', 'Hayes', 'Hickory', 'Violet', 'Wellons'],
     'nce': ['Freight Line', 'Holly Swamp', 'PG Solar'],
     'hst': ['BISHOPVILLE', 'HICKSON', 'OGBURN', 'JEFFERSON', 'Marshall', 'Tedder', 'Thunderhead', 'Van Buren'],
     'xelio': ['Lily']
 }
+access_log_customers = ['Soltage', ]
 
 
 
@@ -109,7 +110,10 @@ def dbcnxn():
     #Connect to DB
     realdb = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb;'
     db = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039 - Copy.accdb'
-    connect_db = pyodbc.connect(realdb)
+    if testingvar:
+        connect_db = pyodbc.connect(db)
+    else:    
+        connect_db = pyodbc.connect(realdb)
     c = connect_db.cursor()
 
 def browse_files():
@@ -146,6 +150,7 @@ def parse_wo(wos):
         activityid = None
         locationid = None
         userlistid = None
+        issuelistid = None
         editDate = None
         activity_log_id = None
         wo_notes = None
@@ -158,8 +163,10 @@ def parse_wo(wos):
             userlistid = 7
         elif row[0] == "JACOBBUD99":
             userlistid = 10
+        elif row[0] == "NARENCO":
+            userlistid = 3
         else:
-            messagebox.showerror(title="Exiting WO Input", message=f"Found Error in WO XL File\nUser is Neither:\nJoseph Lang\nJacob Budd\nWO: {wo}")
+            messagebox.showerror(title="Exiting WO Input", message=f"Found Error in WO XL File\nUser is Neither:\nJoseph Lang\nJacob Budd\nBrandon Arrowood (NARENCO)\nWO: {wo}")
             root.destroy()
 
         wo = row[2]
@@ -240,7 +247,8 @@ def parse_wo(wos):
         except Exception as e:
             messagebox.showerror(title="Database Error", message=f"An error occurred while inserting data into the database: {e}")
 
-
+        stowmatch1 = re.search(r'stow', row[6], re.IGNORECASE)
+        stowmatch2 = re.search(r'stow', row[7], re.IGNORECASE)
 
         invnomatch = re.search(r'Inverter\s*(\d+)', row[6], re.IGNORECASE)
         if invnomatch:
@@ -279,21 +287,18 @@ def parse_wo(wos):
                 customer_note = f'Utility Tripped the site offline at {starttime} on {startdate}'
             else:
                 customer_note = f'Utility Tripped the site offline at {starttime} on {startdate}. Production restored to the site {repairs_note} at {endtime} on {enddate}'
-        
         elif row[4] == 'Site Outage' and (row[5] == 'Site Trip' or row[5] == 'Nuisance Trip'):
             issuelistid = 167
             if enddate is None:
                 customer_note = f'Site Tripped offline at {starttime} on {startdate}'
             else:
                 customer_note = f'Site Tripped offline at {starttime} on {startdate}. Production restored to the site {repairs_note} at {endtime} on {enddate}'
-        
         elif row[4] == 'Equipment Outage' and (invcheck1 is not None or invcheck2 is not None):
             issuelistid = 42
             if enddate is None:
                 customer_note = f'Inverter {invno} tripped offline at {starttime} on {startdate}'
             else:
                 customer_note = f'Inverter {invno} tripped offline at {starttime} on {startdate}. Production restored to the device {repairs_note} at {endtime} on {enddate}'
-        
         elif row[4] == 'COMMs Outage' and (invcheck1 is not None or invcheck2 is not None):
             issuelistid = 64
         elif row[4] == 'Underperformance' and (underperformcheck1 is not None or underperformcheck2 is not None) and (invcheck1 is not None or invcheck2 is not None):
@@ -302,6 +307,8 @@ def parse_wo(wos):
             issuelistid = 229
         elif row[4] == 'Underperformance' and (cbcheck1 is not None or cbcheck2 is not None):
             issuelistid = 212
+        elif stowmatch1 or stowmatch2:
+            issuelistid = 227
         else:
             issuelistid = None
 
@@ -336,29 +343,39 @@ def parse_wo(wos):
         customer_noti(nce_customer_data, "NCMEC")
         customer_noti(nar_customer_data, "NARENCO")
     else:
+        connect_db.close()
         root.destroy()
 
 def send_email(customer_data, window, customer):
     #print(f"Custom Data: {customer_data}")
+    # Create the email message
+    today = datetime.date.today().strftime("%m/%d/%y")
+    message = MIMEMultipart()
     me = 'joseph.lang@narenco.com'
     if customer == 'Harrison St.':
+        message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
         recipients = ['jayme.orrock@narenco.com', 'cdepodesta@harrisonst.com', 'brandon.arrowood@narenco.com', 'jhopkins@harrisonst.com', 'HS_DG_Solar@harrisonst.com', 'cclark@harrisonst.com', 'cgao@harrisonst.com', 'newman.segars@narenco.com']
     elif customer == 'Sol River':
+        message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
         recipients = ['brandon@solrivercapital.com', 'projects@solrivercapital.com', 'jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com']
     elif customer == 'Soltage':
+        message["Subject"] = f"NARENCO O&M | {today} Daily Report - {customer}"
+        site_access = site_access_query('Soltage')
+        message.attach(MIMEText(site_access, "html"))
         recipients = ['assetmanagement@soltage.com', 'blamorticella@soltage.com', 'rgray@soltage.com', 'hgao@soltage.com', 'operations@soltage.com', 'jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com']
     elif customer == 'NCEMC':
+        message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
         recipients = ['jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com', 'amy.roswick@ncemcs.com', 'john.cook@ncemcs.com', 'Carlton.Lewis@ncemcs.com']
     elif customer == 'NARENCO':
+        message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
         recipients = ['jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com', 'andrew.giraldo@narenco.com', 'mark.caddell@narenco.com', 'jesse.montgomery@cleanshift.energy']
     
-    today = datetime.date.today().strftime("%m/%d/%y")
-    # Create the email message
-    message = MIMEMultipart()
-    message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
+
     message["From"] = "omops@narenco.com"
-    #message["To"] = me
-    message["To"] = ', '.join(recipients)
+    if testingvar:
+        message["To"] = me
+    else:
+        message["To"] = ', '.join(recipients)
 
     password = creds['credentials']['shiftsumEmail']
     sender = "omops@narenco.com"
@@ -371,8 +388,8 @@ def send_email(customer_data, window, customer):
     email_table += "<tr style='background-color: lightgray;'>"
     email_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Ticket #</th>"
     email_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Site</th>"
-    email_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Start Date/Time</th>"
-    email_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>End Date/Time</th>"
+    email_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Start Date | Time</th>"
+    email_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>End Date | Time</th>"
     email_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Issue</th>"
     email_table += "</tr>"
     
@@ -393,15 +410,81 @@ def send_email(customer_data, window, customer):
     # End the table
     email_table += "</table>"
 
-    # Attach the edited HTML content
-    html_body = MIMEText(email_table, "html")
-    message.attach(html_body)
+    message.attach(MIMEText(email_table, "html"))
 
     # Send the email
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(sender, password)
         server.sendmail(sender, me, message.as_string())
     window.destroy()
+
+def site_access_query(customer):
+    if testingvar:
+        today = datetime.date.today() - datetime.timedelta(days=1)
+        print(today)
+    else:
+        today = datetime.date.today()
+
+    
+    if customer == 'Soltage':
+        sites = [7, 9, 22, 23, 24]
+    #Add Other customers LocationIDs according to the NCC 039 Database
+    #elif customer == '?'
+
+
+    
+    #CHECK HERE TO MAKE SURE THE FIELD NAMES AND TABLE NAMES ARE ACCURATE TO THE DB AND THEN CONTINUE DEBUGGING!!!!
+    query = """
+    SELECT al.StartDate, al.StartTime, al.EndDate, al.EndTime, a.PeopleCount, cl.Company, l.Location
+    FROM ((AccessLog AS a
+    INNER JOIN ActivityLog  AS al ON a.ActivityLogID = al.ActivityLogID)
+    INNER JOIN ContactList AS cl ON a.ContactListID = cl.ContactListID)
+    INNER JOIN LocationList as l ON al.LocationListID = l.LocationID
+    WHERE al.LocationListID IN ({})
+    AND al.StartDate = ?
+    """.format(','.join('?' for _ in sites))
+    
+    c.execute(query, *sites, today)
+    activity_log_results = c.fetchall()
+
+        # Title/Header
+    html_table = "<h2 style='text-align: center; color: black;'>Access Log Report</h2>"
+    # Initialize HTML table with border style and header row
+    html_table += "<table style='border-collapse: collapse; width: 100%;'>"
+    # Header row with lightgray background
+    html_table += "<tr style='background-color: lightgray;'>"
+    html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Location</th>"
+    html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Company</th>"
+    html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'># Personnel</th>"
+    html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Start Time</th>"
+    html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>End Time</th>"
+    html_table += "</tr>"
+    print(activity_log_results)
+    # Iterate over each row in the results
+        # Combine rows with identical data except for PeopleCount
+    combined_results = {}
+    for row in activity_log_results:
+        key = (row.StartDate, row.StartTime, row.EndDate, row.EndTime, row.Company, row.Location)
+        if key in combined_results:
+            combined_results[key] += row.PeopleCount
+        else:
+            combined_results[key] = row.PeopleCount
+
+    for key, people_count in combined_results.items():
+        start_date, start_time, end_date, end_time, company, location = key
+        # Start a new row
+        html_table += "<tr>"
+        html_table += f"<td style='border: 1px solid black; padding: 8px; color: black; background-color: lightblue; text-align: center;'>{location}</td>"
+        html_table += f"<td style='border: 1px solid black; padding: 8px; color: black; background-color: lightblue; text-align: center;'>{company}</td>"
+        html_table += f"<td style='border: 1px solid black; padding: 8px; color: black; background-color: lightblue; text-align: center;'>{people_count}</td>"
+        html_table += f"<td style='border: 1px solid black; padding: 8px; color: black; background-color: lightblue; text-align: center;'>{start_time.strftime("%H:%M")}</td>"
+        html_table += f"<td style='border: 1px solid black; padding: 8px; color: black; background-color: lightblue; text-align: center;'>{end_time.strftime("%H:%M")}</td>"
+        # End the row
+        html_table += "</tr>"
+    # End the table
+    html_table += "</table>"
+    return html_table
+
 
 def customer_noti(customer_data, customer):
     if customer_data == []:
@@ -414,8 +497,8 @@ def customer_noti(customer_data, customer):
     html_table += "<tr style='background-color: lightgray;'>"
     html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Ticket #</th>"
     html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Site</th>"
-    html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Start Date/Time</th>"
-    html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>End Date/Time</th>"
+    html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Start Date | Time</th>"
+    html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>End Date | Time</th>"
     html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Issue</th>"
     html_table += "</tr>"
     
@@ -437,39 +520,47 @@ def customer_noti(customer_data, customer):
     html_table += "</table>"
     # Display the table in a new window
     preview_window = tk.Toplevel(root)
-    preview_window.title("Shift Summary Preview")
+    preview_window.title(f"{customer} Report Preview")
     try:
         preview_window.iconbitmap(r"G:\Shared drives\O&M\NCC Automations\Icons\email-1.ico")
     except Exception as e:
         print(f"Error loading icon: {e}")
-    preview_window.attributes("-fullscreen", True)
+    preview_window.geometry("1000x800")
+    preview_window.resizable(True, True)
+
+    # Create a container frame for the canvas and scrollbar
+    container_frame = tk.Frame(preview_window)
+    container_frame.pack(fill="both", expand=True)
 
     # Create a canvas and a scrollbar
-    canvas = tk.Canvas(preview_window)
-    scrollbar = tk.Scrollbar(preview_window, orient="vertical", command=canvas.yview)
-    scrollable_frame = tk.Frame(canvas)
+    canvas = tk.Canvas(container_frame)
+    scrollbar = tk.Scrollbar(container_frame, orient="vertical", command=canvas.yview)
+    
 
-    scrollable_frame.bind(
+    
+    # Pack the scrollable_frame to expand and fill and canvas and scrollbar
+    canvas.pack(side="left", fill="both", expand=True)
+    scrollbar.pack(side="right", fill="y")
+    #scrollable_frame.pack(fill="x", expand=True)
+    canvas.configure(yscrollcommand=scrollbar.set)
+    scrollable_frame = tk.Frame(canvas)
+    scrollable_frame_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+    canvas.bind(
         "<Configure>",
-        lambda e: canvas.configure(
-            scrollregion=canvas.bbox("all")
-        )
+        lambda e: FrameWidth(e, canvas, scrollable_frame_id)
     )
 
-    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-    canvas.configure(yscrollcommand=scrollbar.set)
-    # Pack the scrollable_frame to expand and fill
-    scrollable_frame.pack(fill="both", expand=True)
-
-    # Pack the canvas and scrollbar
-    canvas.pack(fill="both", expand=True)
-
+    if customer in access_log_customers:
+        site_access_table = site_access_query(customer)
+        site_frame = tkinterweb.HtmlFrame(scrollable_frame)
+        site_frame.load_html(site_access_table)
+        site_frame.pack(expand=True, fill="x")
     
     # Create an HtmlFrame widget to display the HTML table
     html_frame = tkinterweb.HtmlFrame(scrollable_frame)
     html_frame.load_html(html_table)
-    html_frame.pack(expand=True, fill="both")
-    
+    html_frame.pack(expand=True, fill="x")
+
     #Instructions
     main_lbl = tk.Label(scrollable_frame, text='Edit the Table above with the one Below', borderwidth=1, relief="solid", font=('TkDefaultFont', 16))
     main_lbl.pack(expand=True, fill='x')
@@ -520,18 +611,27 @@ def customer_noti(customer_data, customer):
     button_frame = tk.Frame(preview_window)
     button_frame.pack(fill="x")
     # Add a button to send the email
-    send_button = tk.Button(button_frame, text="Send Email -> Next Preview", command=lambda: [collect_data(), send_email(custom_data, preview_window, customer)], width=140, bg='lightgreen')
-    send_button.pack(side="left")
-    next_preview_button = tk.Button(button_frame, text="Next Preview", command=lambda: preview_window.destroy(), width=60, bg='yellow')
-    next_preview_button.pack(side="right")
-    close_button = tk.Button(button_frame, text="Close Program", command=lambda: root.destroy(), width = 60, bg='orange')
-    close_button.pack(side="right")
+    send_button = tk.Button(button_frame, text="Send Email -> Next Preview", command=lambda: [collect_data(), send_email(custom_data, preview_window, customer)], bg='lightgreen')
+    send_button.pack(side="left", fill='x', expand=True)
+    next_preview_button = tk.Button(button_frame, text="Next Preview", command=lambda: preview_window.destroy(), bg='yellow')
+    next_preview_button.pack(side="right", fill='x', expand=True)
+    close_button = tk.Button(button_frame, text="Close Program", command=lambda: root.destroy(), bg='orange')
+    close_button.pack(side="right", fill='x', expand=True)
 
-    
+def FrameWidth(event, canvas, scrollable_frame):
+    # Update the scrollregion of the canvas to match the size of the scrollable frame
+    canvas.configure(scrollregion=canvas.bbox("all"))
+    # Adjust the width of the scrollable frame to match the container frame's width
+    canvas.itemconfig(scrollable_frame, width=event.width)
+
     
 # Set up the tkinter window
 root = tk.Tk()
 root.title("WO Processing Tool")
+
+testingvar = tk.BooleanVar()
+testingCB = tk.Checkbutton(root, text="Testing Mode", variable=testingvar)
+testingCB.pack()
 
 # Create a button to browse files
 browse_button = tk.Button(root, text="Select Daily WO File", command=browse_files, height=5, width=50)
