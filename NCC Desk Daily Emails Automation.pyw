@@ -260,16 +260,9 @@ def shift_Summary():
     db = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb;'
     connect_dbn = pyodbc.connect(db)
     c = connect_dbn.cursor()
+    today = datetime.today().date()
 
-    start_value = r"G:\Shared drives\O&M\NCC Automations\Emails\Shift Summary Start.txt"
-
-    # Open and read the file
-    with open(start_value, 'r') as file:
-        content = file.read().strip()
-    
-    start = int(content)
-
-    c.execute(f"SELECT * FROM [ShiftSummary] WHERE [ActivityLogID] > {start}")
+    c.execute(f"SELECT * FROM [ShiftSummary] WHERE [EditDate] = {today}")
     todays_entries = c.fetchall()
 
     todays_date = datetime.today().strftime('%m/%d/%Y')
