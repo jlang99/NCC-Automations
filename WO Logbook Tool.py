@@ -97,7 +97,8 @@ customers_dict = {
     'nar': ['Bluebird', 'Cardinal', 'Cougar', 'Cherry Blossom', 'Harrison', 'Hayes', 'Hickory', 'Violet', 'Wellons'],
     'nce': ['Freight Line', 'Holly Swamp', 'PG Solar'],
     'hst': ['BISHOPVILLE', 'HICKSON', 'OGBURN', 'JEFFERSON', 'Marshall', 'Tedder', 'Thunderhead', 'Van Buren'],
-    'xelio': ['Lily']
+    'xelio': ['Lily'],
+    'charter': ['Charter GM'],
 }
 access_log_customers = ['Soltage', ]
 
@@ -110,7 +111,7 @@ def dbcnxn():
     #Connect to DB
     realdb = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb;'
     db = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039 - Copy.accdb'
-    if testingvar:
+    if testingvar.get():
         connect_db = pyodbc.connect(db)
     else:    
         connect_db = pyodbc.connect(realdb)
@@ -133,6 +134,7 @@ def browse_files():
     
 def parse_wo(wos):
     global c
+    print(testingvar.get())
     dbcnxn()
 
     activity_logbook_data = []
@@ -372,7 +374,7 @@ def send_email(customer_data, window, customer):
     
 
     message["From"] = "omops@narenco.com"
-    if testingvar:
+    if testingvar.get():
         message["To"] = me
     else:
         message["To"] = ', '.join(recipients)
@@ -419,7 +421,7 @@ def send_email(customer_data, window, customer):
     window.destroy()
 
 def site_access_query(customer):
-    if testingvar:
+    if testingvar.get():
         today = datetime.date.today() - datetime.timedelta(days=1)
         print(today)
     else:

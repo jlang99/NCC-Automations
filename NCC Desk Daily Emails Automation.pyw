@@ -92,12 +92,18 @@ def send_lily_email(solar_production, irradiance, updates):
     else:
         msg['To'] = ' , '.join(recipients)
     ctime = datetime.now()
+    print(ctime.minute)
     if 45 > ctime.minute > 15:
+        hours = ctime.hour
         mins = '30'
-    else:
+    elif ctime.minute >= 45:
+        hours = ctime.hour+1
         mins = '00'
-    msg['Subject'] = f'{ctime.hour}:{mins} Lily Solar Update'
-    when = f'{ctime.hour}:{mins}'
+    else:
+        hours = ctime.hour
+        mins = '00'
+    msg['Subject'] = f'{hours}:{mins} Lily Solar Update'
+    when = f'{hours}:{mins}'
 
     today = ctime.strftime("%m/%d/%y")
 
@@ -291,7 +297,7 @@ def shift_Summary():
                 issueLog = ' | '.join((str(row[9]) if row[9] else '', str(row[10]) if row[10] else '', str(row[11]) if row[11] else '', str(row[12]) if row[12] else '', str(row[13]) if row[13] else ''))
             else:
                 issueLog = ''
-            print(activitylog_id)
+            
             try:
                 starttime = ' '.join((str(row[14].date()), str(row[15].time())))
             except AttributeError:
