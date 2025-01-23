@@ -2,6 +2,9 @@ import os
 import pyodbc
 import datetime
 import time
+import tkinter as tk
+from tkinter import messagebox
+import sys
 
 from icecream import ic
 
@@ -140,7 +143,16 @@ def update_Sheet():
     time.sleep(0.5)
     
 
-print("Updating X-Elio's Lily Sign in Spreadsheet")
-update_Sheet()
+def main():
+    root = tk.Tk()
+    root.withdraw()  # Hide the main window
 
+    response = messagebox.askyesno("Confirmation", "Do you want to update X-Elio's Lily Sign in Spreadsheet?")
+    
+    if response:
+        update_Sheet()
+    else:
+        sys.exit("Operation cancelled by the user.")
 
+if __name__ == "__main__":
+    main()
