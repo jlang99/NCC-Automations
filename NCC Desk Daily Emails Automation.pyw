@@ -237,7 +237,8 @@ def lily_email_data():
 
         img_not_fnd_win = Toplevel()
         img_not_fnd_win.title("Manual Entry Lily Email")
-
+        img_not_fnd_win.wm_attributes("-topmost", True) 
+        
         power_var = StringVar(value="00.00")
         irradiance_var = StringVar(value="N/A")
 
