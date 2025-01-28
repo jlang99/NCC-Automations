@@ -100,8 +100,12 @@ customers_dict = {
     'xelio': ['Lily'],
     'charter': ['Charter GM'],
 }
-access_log_customers = ['Soltage', ]
 
+#Tuple is as follows = name, wo-report, access_log_report 
+#Will be used to identify users who get the report or do not. 
+customer_report_items = [('Harrison St.', hst_customer_data, False), ('NARENCO', nar_customer_data, False), 
+                         ('NCEMC', nce_customer_data, False), 
+                         ('Sol River', slr_customer_data, False), ('Soltage', solt_customer_data, True)]
 
 
 
@@ -339,11 +343,28 @@ def parse_wo(wos):
 
     if messagebox.askokcancel(title="WO's to Logbook Success!",
     message= "Successfully input all WO's to the NCC Logbook\nClick OK to view Customer Reports\nClick Cancel to Close"):
-        customer_noti(hst_customer_data, "Harrison St.")
-        customer_noti(slr_customer_data, "Sol River")
-        customer_noti(solt_customer_data, "Soltage")
-        customer_noti(nce_customer_data, "NCMEC")
-        customer_noti(nar_customer_data, "NARENCO")
+        for customer, customer_data, site_access_log in customer_report_items:
+            check_4_null = []
+            if site_access_log:
+                site_access_table = site_access_query(customer)
+                data_row_count = site_access_table.count('</tr>') - 1
+                if data_row_count == 0:
+                    continue
+                else:
+                    check_4_null.append(1)
+                    customer_noti(customer, customer_data, site_access_table)
+            else:
+                if customer_data:
+                    check_4_null.append(1)
+                    customer_noti(customer_data, customer, site_access_log)
+        if check_4_null:
+            pass
+        else:
+            messagebox.showinfo(title="No Customer Data Found",
+            message= "No relevant WO's or Site Access Logs found.")
+            connect_db.close()
+            root.destroy()
+
     else:
         connect_db.close()
         root.destroy()
@@ -488,9 +509,7 @@ def site_access_query(customer):
     return html_table
 
 
-def customer_noti(customer_data, customer):
-    if customer_data == []:
-        return
+def customer_noti(customer_data, customer, site_access_table):
     # Title/Header
     html_table = f"<h2 style='text-align: center; color: black;'>NCC Daily WO Report - {customer}</h2>"
     # Initialize HTML table with border style and header row
@@ -552,12 +571,11 @@ def customer_noti(customer_data, customer):
         lambda e: FrameWidth(e, canvas, scrollable_frame_id)
     )
 
-    if customer in access_log_customers:
-        site_access_table = site_access_query(customer)
+    if site_access_table:
         site_frame = tkinterweb.HtmlFrame(scrollable_frame)
         site_frame.load_html(site_access_table)
         site_frame.pack(expand=True, fill="x")
-    
+
     # Create an HtmlFrame widget to display the HTML table
     html_frame = tkinterweb.HtmlFrame(scrollable_frame)
     html_frame.load_html(html_table)
