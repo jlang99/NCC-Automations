@@ -138,7 +138,6 @@ def browse_files():
     
 def parse_wo(wos):
     global c
-    print(testingvar.get())
     dbcnxn()
 
     activity_logbook_data = []
@@ -219,14 +218,14 @@ def parse_wo(wos):
 
         # Extract and format the start time
         if starttime_match:
-            print(starttime_match.group(1), clean_text)
+            #print(starttime_match.group(1), clean_text)
             starttime = format_time(starttime_match.group(1))
-            print("Formatted Start Time:", starttime)
+            #print("Formatted Start Time:", starttime)
 
         # Extract and format the end time
         if endtime_match:
             endtime = format_time(endtime_match.group(1))
-            print("Formatted End Time:", endtime)
+            #print("Formatted End Time:", endtime)
 
         # Extract the end date
         if enddate_match:
@@ -235,7 +234,7 @@ def parse_wo(wos):
         if startdate_match:
             startdate = add_current_year(startdate_match.group(1))
         editDate = datetime.date.today()
-
+        
         # Insert data into the ActivityLog table and retrieve the ActivityLogID
         try:
             # Execute the insert statement
@@ -252,7 +251,7 @@ def parse_wo(wos):
 
         except Exception as e:
             messagebox.showerror(title="Database Error", message=f"An error occurred while inserting data into the database: {e}")
-
+        
         stowmatch1 = re.search(r'stow', row[6], re.IGNORECASE)
         stowmatch2 = re.search(r'stow', row[7], re.IGNORECASE)
 
@@ -323,7 +322,7 @@ def parse_wo(wos):
             wo_notes = f'WO {wo}  {wo_notes_match.group(1)}'
         else:
             wo_notes = f'WO {wo}'
-
+        
         try:
             # Now you can use activity_log_id to insert more data into another table
             # Example: Insert into another table using activity_log_id
@@ -335,7 +334,7 @@ def parse_wo(wos):
         except Exception as e:
             messagebox.showerror(title="Database Error", message=f"An error occurred while inserting data into the database: {e}")
             root.destroy()
-
+        
 
         #Customer Notification Process
         if customer_note is not None:
@@ -356,7 +355,7 @@ def parse_wo(wos):
             else:
                 if customer_data:
                     check_4_null.append(1)
-                    customer_noti(customer_data, customer, site_access_log)
+                    customer_noti(customer, customer_data, site_access_log)
         if check_4_null:
             pass
         else:
@@ -442,21 +441,11 @@ def send_email(customer_data, window, customer):
     window.destroy()
 
 def site_access_query(customer):
-    if testingvar.get():
-        today = datetime.date.today() - datetime.timedelta(days=1)
-        print(today)
-    else:
-        today = datetime.date.today()
-
-    
     if customer == 'Soltage':
         sites = [7, 9, 22, 23, 24]
     #Add Other customers LocationIDs according to the NCC 039 Database
     #elif customer == '?'
 
-
-    
-    #CHECK HERE TO MAKE SURE THE FIELD NAMES AND TABLE NAMES ARE ACCURATE TO THE DB AND THEN CONTINUE DEBUGGING!!!!
     query = """
     SELECT al.StartDate, al.StartTime, al.EndDate, al.EndTime, a.PeopleCount, cl.Company, l.Location
     FROM ((AccessLog AS a
@@ -466,6 +455,8 @@ def site_access_query(customer):
     WHERE al.LocationListID IN ({})
     AND al.StartDate = ?
     """.format(','.join('?' for _ in sites))
+    
+    today = datetime.date.today()  
     
     c.execute(query, *sites, today)
     activity_log_results = c.fetchall()
@@ -482,7 +473,6 @@ def site_access_query(customer):
     html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Start Time</th>"
     html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>End Time</th>"
     html_table += "</tr>"
-    print(activity_log_results)
     # Iterate over each row in the results
         # Combine rows with identical data except for PeopleCount
     combined_results = {}
@@ -509,7 +499,7 @@ def site_access_query(customer):
     return html_table
 
 
-def customer_noti(customer_data, customer, site_access_table):
+def customer_noti(customer, customer_data, site_access_table):
     # Title/Header
     html_table = f"<h2 style='text-align: center; color: black;'>NCC Daily WO Report - {customer}</h2>"
     # Initialize HTML table with border style and header row
