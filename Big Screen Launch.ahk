@@ -112,9 +112,9 @@ SendInput "n"
 Sleep 1
 SendInput "{Control Up}"
 Sleep 1000
-WinMove("-8", "-8", 1920, 1048,"New Tab - Google Chrome")
+WinMove(349, 113, 1401, 802,"New Tab - Google Chrome")
 Sleep 1000
-WinMaximize("New Tab - Google Chrome")
+Click 1487, 16
 Sleep 1000
 ;Email
 Click 1737, 160
@@ -168,7 +168,7 @@ Sleep 2000
 
 
 
-Run "G:\Shared drives\O&M\NCC Automations\Notification System\#AE API GUI.pyw"
+Run "G:\Shared drives\O&M\NCC Automations\Notification System\#AE API GUI SQL.pyw"
 if WinWait("Timestamps", , 10) {
    WinMove(1095, 204, 308, 314, "Timestamps")
    WinMove(1389, 204, 250, 314, "Alert Windows Info")

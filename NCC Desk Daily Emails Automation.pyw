@@ -326,7 +326,7 @@ def shift_Summary():
 
 
     # Construct the HTML table
-    html_table = f"<h2 style='text-align: center; color: black;'>Narenco NCC Daily Activity Report for {todays_date}</h2>"
+    html_table = f"<h2 style='text-align: center; color: black;'>NCC Daily Activity Report for {todays_date}</h2>"
     html_table += "<table style='border-collapse: collapse; width: 100%;'>"
     html_table += "<tr style='background-color: lightgray;'>"
     html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Location</th>"

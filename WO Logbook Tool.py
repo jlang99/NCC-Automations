@@ -347,11 +347,13 @@ def parse_wo(wos):
             if site_access_log:
                 site_access_table = site_access_query(customer)
                 data_row_count = site_access_table.count('</tr>') - 1
-                if data_row_count == 0:
-                    continue
-                else:
+                if data_row_count != 0:
                     check_4_null.append(1)
                     customer_noti(customer, customer_data, site_access_table)
+                if customer_data:
+                    check_4_null.append(1)
+                    customer_noti(customer, customer_data, site_access_table)
+
             else:
                 if customer_data:
                     check_4_null.append(1)
@@ -374,23 +376,24 @@ def send_email(customer_data, window, customer):
     today = datetime.date.today().strftime("%m/%d/%y")
     message = MIMEMultipart()
     me = 'joseph.lang@narenco.com'
+    brandon = ['brandon.arrowood@narenco.com',]
     if customer == 'Harrison St.':
         message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
-        recipients = ['jayme.orrock@narenco.com', 'cdepodesta@harrisonst.com', 'brandon.arrowood@narenco.com', 'jhopkins@harrisonst.com', 'HS_DG_Solar@harrisonst.com', 'cclark@harrisonst.com', 'cgao@harrisonst.com', 'newman.segars@narenco.com']
+        recipients = ['jayme.orrock@narenco.com', 'cdepodesta@harrisonst.com', 'brandon.arrowood@narenco.com', 'jhopkins@harrisonst.com', 'HS_DG_Solar@harrisonst.com', 'cclark@harrisonst.com', 'cgao@harrisonst.com', 'newman.segars@narenco.com', 'joseph.lang@narenco.com']
     elif customer == 'Sol River':
         message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
-        recipients = ['brandon@solrivercapital.com', 'projects@solrivercapital.com', 'jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com']
+        recipients = ['brandon@solrivercapital.com', 'projects@solrivercapital.com', 'jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com', 'joseph.lang@narenco.com']
     elif customer == 'Soltage':
         message["Subject"] = f"NARENCO O&M | {today} Daily Report - {customer}"
         site_access = site_access_query('Soltage')
         message.attach(MIMEText(site_access, "html"))
-        recipients = ['assetmanagement@soltage.com', 'blamorticella@soltage.com', 'rgray@soltage.com', 'hgao@soltage.com', 'operations@soltage.com', 'jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com']
+        recipients = ['assetmanagement@soltage.com', 'blamorticella@soltage.com', 'rgray@soltage.com', 'hgao@soltage.com', 'operations@soltage.com', 'jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com', 'joseph.lang@narenco.com']
     elif customer == 'NCEMC':
         message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
-        recipients = ['jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com', 'amy.roswick@ncemcs.com', 'john.cook@ncemcs.com', 'Carlton.Lewis@ncemcs.com']
+        recipients = ['jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com', 'amy.roswick@ncemcs.com', 'john.cook@ncemcs.com', 'Carlton.Lewis@ncemcs.com', 'joseph.lang@narenco.com']
     elif customer == 'NARENCO':
         message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
-        recipients = ['jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com', 'andrew.giraldo@narenco.com', 'mark.caddell@narenco.com', 'jesse.montgomery@cleanshift.energy']
+        recipients = ['jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com', 'andrew.giraldo@narenco.com', 'mark.caddell@narenco.com', 'jesse.montgomery@cleanshift.energy', 'joseph.lang@narenco.com']
     
 
     message["From"] = "omops@narenco.com"
@@ -437,7 +440,10 @@ def send_email(customer_data, window, customer):
     # Send the email
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(sender, password)
-        server.sendmail(sender, me, message.as_string())
+        if testingvar.get():
+            server.sendmail(sender, me, message.as_string())
+        else:
+            server.sendmail(sender, recipients, message.as_string())
     window.destroy()
 
 def site_access_query(customer):

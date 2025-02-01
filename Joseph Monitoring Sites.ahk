@@ -124,11 +124,17 @@ f1::{
     "Equipment needed to complete work:`n"
     "Estimated time for repair:"
 )
+^#a::Send(A_MM "/" A_DD " - JL - ")
 
 ;Emails
 ^#b::Send("brandon.arrowood@narenco.com")
 ^#m::Send("joseph.lang@narenco.com")
 
+;Remote Ops
+^#l::{
+    Send("Lily12345")
+Send("{Enter}")
+}
 ;Logbook Help
 ^#n::Send("NARENCO|")
 ^#Numpad0::Send("0800")
@@ -264,8 +270,9 @@ f8::{
         ; CB Issue Sheet
         Run "https://docs.google.com/spreadsheets/d/1RGUwARwDdfDoC8VcNQgb5KC6gPOA-rcMaPsu6vlzg9o/edit?gid=1611132963#gid=1611132963"
         Sleep 200
-        ;Site List
-        Run "https://docs.google.com/spreadsheets/d/1GdO46Jt304OLf-H-dGJ3MQQUbGbd8lEUAuOewhDdIWM/edit#gid=1126541456"
+        ;Plan of Day
+        If(A_DDDD = "Tuesday" or A_DDDD = "Wednesday" or A_DDDD = "Thursday" or A_DDDD = "Friday" or A_DDDD = "Monday")
+        Run "https://docs.google.com/spreadsheets/d/1G3Tv1mWdRk7EU9wtF-rR1WfBkGKVSUBY/edit?gid=1366818878#gid=1366818878"
         Sleep 200
         ; NARENCO Connections sheet
         Run "https://docs.google.com/spreadsheets/d/1YTd0c_VLAGog1NTxo0VGzAdGFUhs9oquY1WJFz2NJA0/edit#gid=0"
@@ -335,8 +342,10 @@ f8::{
         WinMaximize("ForecastReport 005.xlsm - Excel")
         Sleep 1000
         CoordMode "Mouse", "Window"
+        WinActivate("ForecastReport 005.xlsm - Excel")
         Click 154, 1000
         Sleep 250
+        WinActivate("ForecastReport 005.xlsm - Excel")
         Click 374, 277
         WinWait("RUN FORECAST PROCEDURE", , 10)
         Click 190, 120

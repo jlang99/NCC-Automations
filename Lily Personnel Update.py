@@ -42,7 +42,7 @@ def update_Sheet():
     
     c.execute('SELECT * from [XELIOupdate]')
     data = c.fetchall()
-
+    #print(data)
     if data == []:
         exit()
     # Function to format datetime to date or time
@@ -110,9 +110,9 @@ def update_Sheet():
             entry[3].strftime('%m/%d/%Y'),  # Column C
             '',  # Column based on day of week
             '', '', '', '', '', '', # Fill columns until K
-            entry[7],  # Column K
+            entry[7] if entry[7] else "",  # Column K
             '',  # Column L
-            entry[8],  # Column M
+            entry[8] if entry[8] else "",  # Column M
             'Yes'  # Column N
         ]
         # Insert the time_concat into the correct day column

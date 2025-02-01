@@ -6,6 +6,7 @@ AHKMenu.Add("&Postion Time && AE API", Move)
 AHKMenu.Add("&Lily SCADA", OpenLily)
 AHKMenu.Add("Open &DB", OpenDB)
 AHKMenu.Add("Data Pull Script", DataPull)
+AHKMenu.Add("Email Notification (Breaker Only)", BreakerNoti)
 AHKMenu.Add("Email Notification (Not Working/Don't Use)", EmailNoti)
 AHKMenu.Add("Daily Email App", DailyEmail)
 AHKMenu.Add("Wind Monitoring App", WindApp)
@@ -13,7 +14,7 @@ AHKMenu.Add("Wind Monitoring App", WindApp)
 
 WindApp(Item, *)
 {
-   Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\Wind Weather App (Web Scraping).pyw"
+   Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\Wind Weather App.pyw"
 }
 
 LilyDown(Item, *)
@@ -32,7 +33,7 @@ OpenLily(Item, *)
 }
 AEAPIGUI(Item, *)
 {
-Run "G:\Shared drives\O&M\NCC Automations\Notification System\#AE API GUI.pyw"
+Run "G:\Shared drives\O&M\NCC Automations\Notification System\#AE API GUI SQL.pyw"
 }
 OpenDB(Item, *)
 {
@@ -40,13 +41,16 @@ OpenDB(Item, *)
 }
 DataPull(Item, *)
 {
-   Run "G:\Shared drives\O&M\NCC Automations\Notification System\API Data Pull, Multi.py"
+   Run "G:\Shared drives\O&M\NCC Automations\Notification System\API Data Pull, Multi SQL.py"
 }
 EmailNoti(Item, *)
 {
    Run "G:\Shared drives\O&M\NCC Automations\Notification System\Email Notification (Breaker & Inverters).py"
 }
-
+BreakerNoti(Item, *)
+{
+   Run "G:\Shared drives\O&M\NCC Automations\Notification System\Email Notification (Breaker).py"
+}
 DailyEmail(Item, *)
 {
    Run "G:\Shared drives\O&M\NCC Automations\Emails\NCC Desk Daily Emails Automation.pyw"
@@ -113,4 +117,10 @@ f2::{
    CoordMode "Mouse", "Screen"
    MouseMove "812", "1051"
 Return
+}
+
+f3::{
+CoordMode "Mouse", "Window"
+WinActivate "Cloud cover map LIVE: ✔️ Where is it cloudy? ⛅️ - Google Chrome"
+MouseMove 879, 874
 }
