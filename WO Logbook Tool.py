@@ -346,8 +346,7 @@ def parse_wo(wos):
             check_4_null = []
             if site_access_log:
                 site_access_table = site_access_query(customer)
-                data_row_count = site_access_table.count('</tr>') - 1
-                if data_row_count != 0:
+                if "No Site Access Today" in site_access_table:
                     check_4_null.append(1)
                     customer_noti(customer, customer_data, site_access_table)
                 if customer_data:
@@ -500,6 +499,12 @@ def site_access_query(customer):
         html_table += f"<td style='border: 1px solid black; padding: 8px; color: black; background-color: lightblue; text-align: center;'>{end_time.strftime("%H:%M")}</td>"
         # End the row
         html_table += "</tr>"
+    
+    if activity_log_results == []:
+        html_table += "<tr>"
+        html_table += f"<td style='border: 1px solid black; padding: 8px; color: black; background-color: lightblue; text-align: center;' colspan= '5'>No Site Access Today</td>"
+        html_table += "</tr>"
+
     # End the table
     html_table += "</table>"
     return html_table
