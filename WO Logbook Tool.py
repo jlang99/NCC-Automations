@@ -346,10 +346,13 @@ def parse_wo(wos):
             check_4_null = []
             if site_access_log:
                 site_access_table = site_access_query(customer)
-                if "No Site Access Today" in site_access_table:
+                if "No Site Access Today" in site_access_table and customer_data:
                     check_4_null.append(1)
                     customer_noti(customer, customer_data, site_access_table)
-                if customer_data:
+                elif customer_data:
+                    check_4_null.append(1)
+                    customer_noti(customer, customer_data, site_access_table)
+                elif "No Site Access Today" not in site_access_table:
                     check_4_null.append(1)
                     customer_noti(customer, customer_data, site_access_table)
 
@@ -433,8 +436,8 @@ def send_email(customer_data, window, customer):
         email_table += "</tr>"
     # End the table
     email_table += "</table>"
-
-    message.attach(MIMEText(email_table, "html"))
+    if customer_data:
+        message.attach(MIMEText(email_table, "html"))
 
     # Send the email
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:

@@ -56,6 +56,8 @@ def update_Sheet():
     processed_data = {}
 
     for entry in data:
+        if not entry[1] and not entry [2]:
+            continue
         log_id = entry[0]
         description = entry[8]
             
