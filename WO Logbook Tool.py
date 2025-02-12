@@ -449,6 +449,8 @@ def send_email(customer_data, window, customer):
     window.destroy()
 
 def site_access_query(customer):
+    global c
+    dbcnxn()
     if customer == 'Soltage':
         sites = [7, 9, 22, 23, 24]
     #Add Other customers LocationIDs according to the NCC 039 Database
@@ -510,8 +512,14 @@ def site_access_query(customer):
 
     # End the table
     html_table += "</table>"
+    connect_db.close()
     return html_table
 
+def site_access_only():
+    for customer, table, site_accessTF in customer_report_items:
+        if site_accessTF:
+            site_access_table = site_access_query(customer)
+            customer_noti(customer, table, site_access_table)
 
 def customer_noti(customer, customer_data, site_access_table):
     # Title/Header
@@ -658,8 +666,9 @@ testingCB = tk.Checkbutton(root, text="Testing Mode", variable=testingvar)
 testingCB.pack()
 
 # Create a button to browse files
-browse_button = tk.Button(root, text="Select Daily WO File", command=browse_files, height=5, width=50)
+browse_button = tk.Button(root, text="Select Daily WO File", command=browse_files, height=3, width=40)
 browse_button.pack()
-
+browse_button = tk.Button(root, text="Site Access Reports Only", command=site_access_only, height=3, width=40)
+browse_button.pack()
 # Run the tkinter main loop
 root.mainloop()
