@@ -22,6 +22,8 @@ nce_customer_data = []
 hst_customer_data = []
 
 xelio_customer_data = []
+charter_customer_data = []
+
 
 location_dict = {
     1: ["*"],
@@ -237,6 +239,7 @@ def parse_wo(wos):
         
         # Insert data into the ActivityLog table and retrieve the ActivityLogID
         try:
+            
             # Execute the insert statement
             c.execute("""
                 INSERT INTO ActivityLog (ActivityListID, UserListID, LocationListID, StartDate, StartTime, EndDate, EndTime, EditDate)
@@ -248,6 +251,7 @@ def parse_wo(wos):
             activity_log_id = c.fetchone()[0]
 
             connect_db.commit()
+            
 
         except Exception as e:
             messagebox.showerror(title="Database Error", message=f"An error occurred while inserting data into the database: {e}")
@@ -326,11 +330,13 @@ def parse_wo(wos):
         try:
             # Now you can use activity_log_id to insert more data into another table
             # Example: Insert into another table using activity_log_id
+            
             c.execute("""
                 INSERT INTO ObservationLog (ActivityLogID, DeviceListID, IssueListID, Notes)
                 VALUES (?, ?, ?, ?)
             """, (activity_log_id, None, issuelistid, wo_notes))
             connect_db.commit()
+            
         except Exception as e:
             messagebox.showerror(title="Database Error", message=f"An error occurred while inserting data into the database: {e}")
             root.destroy()
@@ -501,7 +507,7 @@ def site_access_query(customer):
         html_table += f"<td style='border: 1px solid black; padding: 8px; color: black; background-color: lightblue; text-align: center;'>{company}</td>"
         html_table += f"<td style='border: 1px solid black; padding: 8px; color: black; background-color: lightblue; text-align: center;'>{people_count}</td>"
         html_table += f"<td style='border: 1px solid black; padding: 8px; color: black; background-color: lightblue; text-align: center;'>{start_time.strftime("%H:%M")}</td>"
-        html_table += f"<td style='border: 1px solid black; padding: 8px; color: black; background-color: lightblue; text-align: center;'>{end_time.strftime("%H:%M")}</td>"
+        html_table += f"<td style='border: 1px solid black; padding: 8px; color: black; background-color: lightblue; text-align: center;'>{end_time.strftime("%H:%M") if end_time else ""}</td>"
         # End the row
         html_table += "</tr>"
     
