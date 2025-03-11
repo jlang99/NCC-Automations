@@ -12,6 +12,35 @@ AHKMenu.Add("Daily Email App", DailyEmail)
 AHKMenu.Add("Wind Monitoring App", WindApp)
 
 
+
+
+
+
+
+WOGUI := Gui()
+WOGUI.Add("Text", "xm ym", "Work In Progress (Fucntion Not Available)")
+WOGUI.Add("Text", "xm y+5", "Select the Type of WO/Outage")
+WOGUI.AddDropDownList("Choose1 vErrorType", ["Site Trip", "Utility Trip", "Inverter Offline", "Site Stow", "Inverter Performance", "Inverter Comms"])
+WOGUI.Add("Text", "xm y+5", "Select Assign To")
+WOGUI.AddDropDownList("Choose1 Sort vAssigned", ["Brandon","Newman", "Joseph", "Jacob", "Thorne", "Jon", "Isaac", "Parker", "Tom", "Zack"])
+WOGUI.Add("Text", "xm y+5", "Select Site")
+WOGUI.AddDropDownList("Choose1 Sort vLocation", ['Bluebird', 'Cardinal', 'Cherry Blossom', 'Cougar', 'Harrison', 'Hayes', 'Hickory', 'Violet', 'Hickson',
+                    'Jefferson', 'Marshall', 'Ogburn', 'Tedder', 'Thunderhead', 'Van Buren', 'Bulloch 1A', 'Bulloch 1B', 'Elk', 'Duplin',
+                    'Harding', 'Mclean', 'Richmond Cadle', 'Shorthorn', 'Sunflower', 'Upson', 'Warbler', 'Washington', 'Whitehall', 'Whitetail',
+                    'Conetoe', 'Wayne I', 'Wayne II', 'Wayne III', 'Freight Line', 'Holly Swamp', 'PG', 'Bishopville II', 'Gray Fox', 'Wellons'])
+WOGUI.Add("Text", "xm y+5", "Select User")
+WOGUI.AddDropDownList("Choose2 Sort vUser", ["NARENCO", "Joseph", "Jacob"])
+
+SubmitBtn := WOGUI.AddButton("Default w80", "CreateWO")
+SubmitBtn.OnEvent("Click", CreateWO)
+
+
+
+
+
+
+
+
 WindApp(Item, *)
 {
    Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\Wind Weather App.pyw"
@@ -71,7 +100,7 @@ Close(Item, *)
 Move(Item, *)
 {
    WinMove(1095, 204, 308, 314, "Timestamps")
-   WinMove(1389, 204, 250, 314, "Alert Windows Info")
+   WinMove(1389, 170, 250, 360, "Alert Windows Info")
    WinMove(1093, 526, , , "Personnel On-Site")
    WinMove(3039, "-874", , , "Soltage")
    WinMove(3421, "-849", , , "NCEMC")
@@ -86,6 +115,109 @@ WinMove(36, -594, 500, 584, "Notified events")
 
 }
 
+
+;WO Creation Tool
+CreateWO(Item, *)
+{
+WinMinimize("Timestamps")
+WinMinimize("Alert Window")
+WinMinimize("NCC Desk Functions")
+WinMinimize("Personnel On-Site")
+CoordMode "Mouse", "Window"
+Click 1694, 184
+Sleep 3000
+Click 1580, 250
+Sleep 1000
+Send "3"
+Send "{Enter}"
+Sleep 1000
+Click 1580, 280
+Send "Corrective"
+Send "{Enter}"
+Click 1580, 310
+Sleep 1000
+Send "Unplanned"
+Send "{Enter}"
+Click 1580, 340
+Sleep 1000
+
+;if vErrorType = "Inverter Offline" {
+;   issue := "Equipment Outage"
+;}
+;elif vErrorType = "Site Trip" {
+;   issue := "Site Trip"
+;}
+;elif vErrorType = "Utility Trip" {
+;   issue := "Utility Trip"
+;}
+;elif vErrorType = "Site Outage" {
+;   issue := "Site Trip"
+;}
+
+;Send issue   ;Needs If Statement to Filter Type From GUI
+Send "{Enter}"
+Click 1580, 430
+Sleep 1000
+Send "Plan"                ;Needs If Statement to Filter Type From GUI
+Send "{Enter}"
+Click 1580, 610
+Sleep 1000
+Send "Full"                ;Needs If Statement to Filter Type From GUI
+Send "{Enter}"
+Click 1580, 640
+Sleep 1000
+Send "Technician"                ;Needs If Statement to Filter Type From GUI
+Send "{Enter}"
+Click 1899, 680
+Sleep 1000
+Send "Thorne"                ;Needs If Statement to Filter Type From GUI
+Send "{Enter}"
+
+Click 667, 715
+Sleep 1000
+Send "Site, Brief Description"                ;Needs If Statement to Filter Type From GUI
+Send "{Enter}"
+Send "{Tab}"
+;Send WO Layout
+Send(
+    "{Ctrl down}b{Ctrl up}NCC--{Ctrl down}b{Ctrl up}`n"
+    "Summary of issue: " A_MM "/" A_DD " - JL - `n"
+    "Can we resolve the issue Remotely? (Y or N) N`n"
+    "(If applicable) How was the issue resolved?`n"
+    "NCC Time: 15 Mins`n"
+    "Start Date: " A_MM "/" A_DD "/" A_YYYY "`n"
+    "Start Time: " A_Hour ":" A_Min "`n"
+    "`n"
+    "{Ctrl down}b{Ctrl up}Tech--{Ctrl down}b{Ctrl up}`n"
+    "Before photos (Y or N):`n"
+    "Reason for equipment fault:`n"
+    "During repair photos (Y or N):`n"
+    "Summary of work performed:`n"
+    "After photos (Y or N):`n"
+    "Site Vegetation (Good or Bad)? Be sure to take photos:`n"
+    "Time on site:`n"
+    "Round trip travel time:`n"
+    "Mileage:`n"
+    "`n"
+    "{Ctrl down}b{Ctrl up}If work order is marked Complete --{Ctrl down}b{Ctrl up}`n"
+    "End Date:`n"
+    "End Time:`n"
+    "`n"
+    "{Ctrl down}b{Ctrl up}If Return Trip is needed—{Ctrl down}b{Ctrl up}`n"
+    "Tools needed to complete work:`n"
+    "Parts to be ordered (Include pics, SN/manufacturer part number):`n"
+    "Equipment needed to complete work:`n"
+    "Estimated time for repair:"
+)
+
+MsgBox("Check for Proper Initials at Summary of Issue:'nInput Proper Start Date and Time and End Time if Applicable")
+}
+
+
+
+WOGUI.Show
+
+;HOTKEYS
 ^!z::AHKMenu.Show
 
 ;FUNCITON KEY REASSIGNMENT

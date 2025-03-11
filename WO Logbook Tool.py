@@ -258,6 +258,8 @@ def parse_wo(wos):
         
         stowmatch1 = re.search(r'stow', row[6], re.IGNORECASE)
         stowmatch2 = re.search(r'stow', row[7], re.IGNORECASE)
+        stowmatch3 = re.search(r'stow', row[8], re.IGNORECASE)
+
 
         invnomatch = re.search(r'Inverter\s*(\d+)', row[6], re.IGNORECASE)
         if invnomatch:
@@ -316,8 +318,9 @@ def parse_wo(wos):
             issuelistid = 229
         elif row[4] == 'Underperformance' and (cbcheck1 is not None or cbcheck2 is not None):
             issuelistid = 212
-        elif stowmatch1 or stowmatch2:
+        elif stowmatch1 or stowmatch2 or stowmatch3:
             issuelistid = 227
+            customer_note = 'Stowed for Local Thunderstorm or Excessive Wind Speeds'
         else:
             issuelistid = None
 

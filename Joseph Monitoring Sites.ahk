@@ -3650,7 +3650,7 @@ Name()
 {
 BlockInput 1
 CoordMode "Mouse", "Screen"
-Click "1700", "1050"
+Click "1730", "10555"
 WinWait "Cisco AnyConnect Secure Mobility Client", , "10"
 CoordMode "Mouse", "Window"
 Click "335", "112"

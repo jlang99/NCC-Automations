@@ -103,7 +103,6 @@ Click 951, 863
 else {
 
     MsgBox "Charter Failed"
-
 }
 
 Sleep 1000
@@ -167,11 +166,10 @@ Sleep 2000
 
 
 
-
 Run "G:\Shared drives\O&M\NCC Automations\Notification System\#AE API GUI SQL.pyw"
 if WinWait("Timestamps", , 10) {
    WinMove(1095, 204, 308, 314, "Timestamps")
-   WinMove(1389, 204, 250, 314, "Alert Windows Info")
+   WinMove(1389, 170, 250, 360, "Alert Windows Info")
    WinMove(1093, 526, , , "Personnel On-Site")
    WinMove(3039, "-874", , , "Soltage")
    WinMove(3421, "-849", , , "NCEMC")
@@ -180,9 +178,7 @@ if WinWait("Timestamps", , 10) {
    WinMove(697, "-2128", , , "Harrison Street")
    WinMove(1302, "-1080", , , "Site Data")
    WinMove(1625, 204, 284, 327, "NCC Desk Functions")
-
-
-    Sleep 1000
+   Sleep 1000
 if WinExist("NCC Wind Monitor") 
 { 
 WinMove("-3845", "-1089", 1936, 1096, "NCC Wind Monitor")
