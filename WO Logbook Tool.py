@@ -390,21 +390,21 @@ def send_email(customer_data, window, customer):
     brandon = ['brandon.arrowood@narenco.com',]
     if customer == 'Harrison St.':
         message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
-        recipients = ['jayme.orrock@narenco.com', 'cdepodesta@harrisonst.com', 'brandon.arrowood@narenco.com', 'jhopkins@harrisonst.com', 'HS_DG_Solar@harrisonst.com', 'cclark@harrisonst.com', 'cgao@harrisonst.com', 'newman.segars@narenco.com', 'joseph.lang@narenco.com']
+        recipients = ['jayme.orrock@narenco.com', 'cdepodesta@harrisonst.com', 'brandon.arrowood@narenco.com', 'jhopkins@harrisonst.com', 'HS_DG_Solar@harrisonst.com', 'cgao@harrisonst.com', 'newman.segars@narenco.com', 'joseph.lang@narenco.com', 'jacob.budd@narenco.com']
     elif customer == 'Sol River':
         message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
-        recipients = ['brandon@solrivercapital.com', 'projects@solrivercapital.com', 'jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com', 'joseph.lang@narenco.com']
+        recipients = ['brandon@solrivercapital.com', 'projects@solrivercapital.com', 'jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com', 'joseph.lang@narenco.com', 'jacob.budd@narenco.com']
     elif customer == 'Soltage':
         message["Subject"] = f"NARENCO O&M | {today} Daily Report - {customer}"
         site_access = site_access_query('Soltage')
         message.attach(MIMEText(site_access, "html"))
-        recipients = ['assetmanagement@soltage.com', 'blamorticella@soltage.com', 'rgray@soltage.com', 'hgao@soltage.com', 'operations@soltage.com', 'jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com', 'joseph.lang@narenco.com']
+        recipients = ['assetmanagement@soltage.com', 'blamorticella@soltage.com', 'rgray@soltage.com', 'hgao@soltage.com', 'operations@soltage.com', 'jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com', 'joseph.lang@narenco.com', 'jacob.budd@narenco.com']
     elif customer == 'NCEMC':
         message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
-        recipients = ['jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com', 'amy.roswick@ncemcs.com', 'john.cook@ncemcs.com', 'Carlton.Lewis@ncemcs.com', 'joseph.lang@narenco.com']
+        recipients = ['jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com', 'amy.roswick@ncemcs.com', 'john.cook@ncemcs.com', 'Carlton.Lewis@ncemcs.com', 'joseph.lang@narenco.com', 'jacob.budd@narenco.com']
     elif customer == 'NARENCO':
         message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
-        recipients = ['jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com', 'andrew.giraldo@narenco.com', 'mark.caddell@narenco.com', 'jesse.montgomery@cleanshift.energy', 'joseph.lang@narenco.com']
+        recipients = ['jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com', 'newman.segars@narenco.com', 'andrew.giraldo@narenco.com', 'mark.caddell@narenco.com', 'jesse.montgomery@cleanshift.energy', 'joseph.lang@narenco.com', 'jacob.budd@narenco.com']
     
 
     message["From"] = "omops@narenco.com"

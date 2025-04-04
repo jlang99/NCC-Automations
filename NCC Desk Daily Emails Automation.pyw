@@ -44,7 +44,7 @@ def send_lily_email(solar_production, irradiance, updates):
     # Email configuration
     sender_email = 'omops@narenco.com'
     test = 'joseph.lang@narenco.com'
-    recipients = ['sherlock.ewing@x-elio.com', 'jose.torrecilla@x-elio.com', 'lilyom@narenco.com', 'josea.gonzalez@x-elio.com', 'newman.segars@narenco.com', 'joseph.lang@narenco.com', 'sergio.martinez@x-elio.com', 'jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com']
+    recipients = ['sherlock.ewing@x-elio.com', 'jose.torrecilla@x-elio.com', 'lilyom@narenco.com', 'josea.gonzalez@x-elio.com', 'newman.segars@narenco.com', 'joseph.lang@narenco.com', 'jacob.budd@narenco.com', 'sergio.martinez@x-elio.com', 'jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com']
     smtp_server = 'smtp.gmail.com'
     smtp_port = 587
     smtp_username = 'omops@narenco.com'

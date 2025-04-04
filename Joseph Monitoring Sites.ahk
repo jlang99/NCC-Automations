@@ -125,6 +125,7 @@ f1::{
     "Estimated time for repair:"
 )
 ^#a::Send(A_MM "/" A_DD " - JL - ")
+^#d::Send("°")
 
 ;Emails
 ^#b::Send("brandon.arrowood@narenco.com")

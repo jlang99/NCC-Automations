@@ -228,12 +228,13 @@ def process_file(file_path):
 
     for sheet_name in xls.sheet_names:
         if sheet_name != "Sheet 1":
+            print(f"Processing {sheet_name:<29} | {datetime.now().time()}")
             df = pd.read_excel(file_path, sheet_name=sheet_name, skiprows=2)
             # Remove columns that include the word 'Setpoint' or 'Target' in the field name
             df = df.loc[:, ~df.columns.str.contains('SetPoint|Target', case=False)]
             results = []
             for column in df.columns[1:]:# Iterate through each column except the first one
-                days4 = df.iloc[1:][column].tail(36) #Hours from Midnight Last Night counting back
+                days4 = df.iloc[1:][column].tail(96) #Hours from Midnight Last Night counting back
                 days4 = pd.to_numeric(days4, errors='coerce') #Sets to a number, correcting negative values
                 
 
@@ -253,13 +254,13 @@ def process_file(file_path):
                 elif sheet_name in ['Marshall Solar', 'Tedder Solar', 'Thunderhead Solar']:
                     pattern = r"Angle (\d+)"
                 elif sheet_name in ['Shorthorn']:
-                    pattern = r"\(ST(\d)\).*A\d S (\d+)"
+                    pattern = r"ST(\d+).*?(?:S|TCU)\s*(\d+)"
                 elif sheet_name in ['Sunflower Solar']:
                     pattern = r"\(ST(\d)\).*TCU (\d+)"
                 elif sheet_name in ['Whitetail', "Ogburn Solar Farm", "Hickson Solar Farm"]:
                     pattern = r"(\d+)"
                 elif sheet_name in ['Elk Solar']:
-                    pattern = r"Postion (\d+)"
+                    pattern = r"Position (\d+)"
 
 
 
@@ -338,7 +339,7 @@ def process_file(file_path):
     root.destroy() #Finished moving data to Sheet
 
 def clear_past(sheet_name):
-    print("Clearing", sheet_name)
+    print(f"Clearing {sheet_name:<31} | {datetime.now().time()}")
     try:
         service = build('sheets', 'v4', credentials=credentials)
         sheet = service.spreadsheets()
@@ -353,7 +354,7 @@ def clear_past(sheet_name):
         print(outbounds)
             
 def write_results(sheet_name, data):
-    print("Writing", sheet_name)
+    print(f"Writing {sheet_name:<32} | {datetime.now().time()}")
     try:
         service = build('sheets', 'v4', credentials=credentials)
         sheet = service.spreadsheets()

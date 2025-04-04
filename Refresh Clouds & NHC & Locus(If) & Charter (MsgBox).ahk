@@ -99,20 +99,18 @@ Close(Item, *)
 
 Move(Item, *)
 {
-   WinMove(1095, 204, 308, 314, "Timestamps")
-   WinMove(1389, 170, 250, 360, "Alert Windows Info")
+   WinMove(918, 204, 484, 314, "Timestamps")
+   WinMove(1389, 204, 250, 304, "Alert Windows Info")
    WinMove(1093, 526, , , "Personnel On-Site")
-   WinMove(3039, "-874", , , "Soltage")
-   WinMove(3421, "-849", , , "NCEMC")
-   WinMove(24, "-2132", , , "NARENCO")
-   WinMove(1930, "-2133", , , "SOL River")
-   WinMove(697, "-2128", , , "Harrison Street")
-   WinMove(1302, "-1080", , , "Site Data")
+   WinMove(2010, "-960", , , "Soltage")
+   WinMove(3009, "-960", , , "NCEMC")
+   WinMove(24, "-2143", , , "NARENCO")
+   WinMove(1930, "-2147", , , "SOL River")
+   WinMove(915, "-1866", , , "Harrison Street")
+   WinMove(1312, "-1080", , , "Site Data")
    WinMove(1625, 204, 284, 327, "NCC Desk Functions")
 
 WinMove(36, -594, 500, 584, "Notified events")
-
-
 }
 
 
