@@ -99,18 +99,21 @@ Close(Item, *)
 
 Move(Item, *)
 {
-   WinMove(918, 204, 484, 314, "Timestamps")
-   WinMove(1389, 204, 250, 304, "Alert Windows Info")
-   WinMove(1093, 526, , , "Personnel On-Site")
-   WinMove(2010, "-960", , , "Soltage")
-   WinMove(3009, "-960", , , "NCEMC")
-   WinMove(24, "-2143", , , "NARENCO")
-   WinMove(1930, "-2147", , , "SOL River")
-   WinMove(915, "-1866", , , "Harrison Street")
-   WinMove(1312, "-1080", , , "Site Data")
-   WinMove(1625, 204, 284, 327, "NCC Desk Functions")
+    WinMove(3297, 785, 284, 327, "NCC Desk Functions")
+    WinMove(3624, 477, 429, 314, "Timestamps")
+    WinMove(3625, 785, 236, 301, "Alert Windows Info")
+    WinMove(2156, 729, , , "Personnel On-Site")
+    WinMove(2371, "-370", , , "Site Data")
+    WinMove(6668, 195, , , "Soltage")
+    WinMove(5385, 728, , , "NCEMC")
+    WinMove(3000, 24, , , "NARENCO")
+    WinMove(4095, 21, , , "SOL River")
+    WinMove(5172, 8, , , "SOL River Continued")
+    WinMove(6259, 26, , , "Harrison Street")
+   Sleep 1000
+    
+WinMove(4350, 767, , , "Notified Events")
 
-WinMove(36, -594, 500, 584, "Notified events")
 }
 
 
@@ -226,31 +229,6 @@ MouseMove 950, 550
 
 
 f2::{
-;Cloud Map REFRESH
-   CoordMode "Mouse", "Window"
-   WinActivate "Cloud cover map LIVE: ✔️ Where is it cloudy? ⛅️ - Google Chrome"
-   Sleep 1000
-   ;Refresh
-   Send "{f5}"
-
-;Zoom on Service area
-   Sleep 5000
-   Click 879, 874
-   Sleep 500
-   Send "{WheelUp}"
-   ;Sleep 4000
-   ;This Won't hold onto the little Map in the Website
-   ;MouseClickDrag "L", 871, 843, 623, 812, 100
-
-;Return Mouse to main screen
-   Sleep 100
-   CoordMode "Mouse", "Screen"
-   MouseMove "812", "1051"
-Return
-}
-
-f3::{
-CoordMode "Mouse", "Window"
-WinActivate "Cloud cover map LIVE: ✔️ Where is it cloudy? ⛅️ - Google Chrome"
-MouseMove 879, 874
+CoordMode "Mouse", "Screen"
+MouseMove 3645, 560
 }
