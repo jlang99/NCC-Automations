@@ -31,23 +31,24 @@ from googleapiclient.errors import HttpError
 
 lily_update_file = r"G:\Shared drives\O&M\NCC Automations\Emails\Lily Updates.txt"
 path_AHK = r"C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe"
-ahk_movedown_path = r"C:\Users\OMOPS\Documents\Scripts\Move Lily Down.ahk"
-ahk_moveback_path = r"C:\Users\OMOPS\Documents\Scripts\Move Lily Back.ahk"
+ahk_movedown_path = r"G:\Shared drives\O&M\NCC Automations\Emails\Move Lily Down.ahk"
+ahk_moveback_path = r"G:\Shared drives\O&M\NCC Automations\Emails\Move Lily Back.ahk"
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 openEventsSheet = '1byNW58NbhuDotmdzJEFplczsXLAP0iMyS9YVU5FqQgk'
 sheet_range= 'Open Events'
 
 with open(r"G:\Shared drives\O&M\NCC Automations\Credentials\app credentials.json", 'r') as credsfile:
     creds = json.load(credsfile)
+with open(r"G:\Shared drives\O&M\NCC Automations\Credentials\Employee Records.json", 'r') as credsfile:
+    employeeData = json.load(credsfile)
 
 def send_lily_email(solar_production, irradiance, updates):
     # Email configuration
-    sender_email = 'omops@narenco.com'
-    test = 'joseph.lang@narenco.com'
-    recipients = ['sherlock.ewing@x-elio.com', 'jose.torrecilla@x-elio.com', 'lilyom@narenco.com', 'josea.gonzalez@x-elio.com', 'newman.segars@narenco.com', 'joseph.lang@narenco.com', 'jacob.budd@narenco.com', 'sergio.martinez@x-elio.com', 'jayme.orrock@narenco.com', 'brandon.arrowood@narenco.com']
-    smtp_server = 'smtp.gmail.com'
+    sender_email = employeeData['email']['NCC Desk']
+    test = employeeData['email']['Joseph Lang']
+    recipients = employeeData['email']['Lily Update List']
     smtp_port = 587
-    smtp_username = 'omops@narenco.com'
+    smtp_username = employeeData['email']['NCC Desk']
     smtp_password = creds['credentials']['lilyEmail']
 
     credentials = None
@@ -151,7 +152,7 @@ def send_lily_email(solar_production, irradiance, updates):
     msg.attach(MIMEText(body, 'html'))
 
     # Connect to Gmail SMTP server and send email
-    with smtplib.SMTP(smtp_server, smtp_port) as server:
+    with smtplib.SMTP("smtp.gmail.com", smtp_port) as server:
         server.starttls()
         server.login(smtp_username, smtp_password)
         server.send_message(msg)
@@ -179,15 +180,18 @@ def lily_email_data():
         sc = pyautogui.screenshot(region=loca)
         sc = cv2.cvtColor(np.array(sc), cv2.COLOR_RGB2GRAY)
         _, binary_image = cv2.threshold(sc, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+        # Invert the binary image
+        inverted_image = cv2.bitwise_not(binary_image)
 
         sc_file_path = fr"G:\Shared drives\O&M\NCC Automations\Emails\Lily Update Data\Lily_data_{time.strftime('%Y-%m-%d_%H-%M-%S')}.png"
-        cv2.imwrite(sc_file_path, binary_image)
-        testy = r"G:\Shared drives\O&M\NCC Automations\Emails\Lily Update Data\Lily_data_2024-07-15_10-00-11.png"
+        cv2.imwrite(sc_file_path, inverted_image)
+        testy = r"G:\Shared drives\O&M\NCC Automations\Emails\Lily Update Data\Lily_data_2025-04-12_14-15-09.png"
+        
         pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-        text = pytesseract.image_to_string(sc_file_path, config=myconfig)
+        text = pytesseract.image_to_string(inverted_image, config=myconfig)
         pattern = r"(\d+)\.?\,?(\d+)\.?(\d+)?"
         lily_vals = re.findall(pattern, text)
-
+        print(lily_vals)
         
         irradiance = "N/A"
 
@@ -218,8 +222,7 @@ def lily_email_data():
             update_data = lilyfile.read()
 
         #Delete ScreenShot
-        if sc_file_path:
-            os.remove(sc_file_path)
+        #os.remove(sc_file_path)
         
         if power and irradiance:
             send_lily_email(power, irradiance, update_data)
@@ -267,9 +270,9 @@ def shift_Summary():
     db = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb;'
     connect_dbn = pyodbc.connect(db)
     c = connect_dbn.cursor()
-    today = datetime.today().date().strftime("#%m/%d/%Y#")
+    firstentry = simpledialog.askinteger(title= "Shift Summary Query", prompt="Input the Activity Log ID from the First Entry of the Day")
 
-    c.execute(f"SELECT * FROM [ShiftSummary] WHERE [EditDate] = {today}")
+    c.execute(f"SELECT * FROM [ShiftSummary] WHERE [ActivityLogID] >= {firstentry}")
     todays_entries = c.fetchall()
 
     todays_date = datetime.today().strftime('%m/%d/%Y')
@@ -412,27 +415,17 @@ def send_shift_Summary(html_table, preview_window):
     date = datetime.now()
     today = date.strftime("%m/%d/%y")
 
-    shift_sum_recipients = [
-    "parker.wilson@narenco.com",
-    "isaac.million@narenco.com", 
-    "jacob.budd@narenco.com",
-    "jayme.orrock@narenco.com",
-    "jon.wieber@narenco.com",
-    "brandon.arrowood@narenco.com",
-    "olivia.staats@narenco.com",
-    "andrew.giraldo@narenco.com",
-    "joseph.lang@narenco.com",
-    "newman.segars@narenco.com"]
+    shift_sum_recipients = employeeData['email']['Shift Sum List']
 
-    test = 'joseph.lang@narenco.com'
+    test = employeeData['email']['Joseph Lang']
     # Create the email message
     message = MIMEMultipart()
     message["Subject"] = f"{today} NCC Shift Summary"
-    message["From"] = "omops@narenco.com"
-    message["To"] = ', '.join(shift_sum_recipients)
+    message["From"] = employeeData['email']['NCC Desk']
+    message["To"] = ' , '.join(shift_sum_recipients)
     #message["To"] = test
     password = creds['credentials']['shiftsumEmail']
-    sender = "omops@narenco.com"
+    sender = employeeData['email']['NCC Desk']
     
     # Attach HTML content
     html_body = MIMEText(html_table, "html")
@@ -441,7 +434,7 @@ def send_shift_Summary(html_table, preview_window):
     # Send the email
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(sender, password)
-        server.sendmail(sender, shift_sum_recipients,message.as_string())    
+        server.sendmail(sender, shift_sum_recipients, message.as_string())    
     
     time.sleep(2.5)
     day_of_week = datetime.today().weekday()
