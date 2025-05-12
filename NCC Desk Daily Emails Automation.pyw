@@ -29,6 +29,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+from PythonTools import CREDS, EMAILS, PausableTimer
+
 lily_update_file = r"G:\Shared drives\O&M\NCC Automations\Emails\Lily Updates.txt"
 path_AHK = r"C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe"
 ahk_movedown_path = r"G:\Shared drives\O&M\NCC Automations\Emails\Move Lily Down.ahk"
@@ -37,19 +39,15 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 openEventsSheet = '1byNW58NbhuDotmdzJEFplczsXLAP0iMyS9YVU5FqQgk'
 sheet_range= 'Open Events'
 
-with open(r"G:\Shared drives\O&M\NCC Automations\Credentials\app credentials.json", 'r') as credsfile:
-    creds = json.load(credsfile)
-with open(r"G:\Shared drives\O&M\NCC Automations\Credentials\Employee Records.json", 'r') as credsfile:
-    employeeData = json.load(credsfile)
-
 def send_lily_email(solar_production, irradiance, updates):
     # Email configuration
-    sender_email = employeeData['email']['NCC Desk']
-    test = employeeData['email']['Joseph Lang']
-    recipients = employeeData['email']['Lily Update List']
+    sender_email = EMAILS['NCC Desk']
+    test = EMAILS['Joseph Lang']
+    recipients = EMAILS['Lily Update List']
+    print(recipients)
     smtp_port = 587
-    smtp_username = employeeData['email']['NCC Desk']
-    smtp_password = creds['credentials']['lilyEmail']
+    smtp_username = EMAILS['NCC Desk']
+    smtp_password = CREDS['lilyEmail']
 
     credentials = None
     if os.path.exists("LilyEvents-token.json"):
@@ -91,7 +89,7 @@ def send_lily_email(solar_production, irradiance, updates):
     if test_var.get() == True:
         msg['To'] = test
     else:
-        msg['To'] = ' , '.join(recipients)
+        msg['To'] = ', '.join(recipients)
     ctime = datetime.now()
     print(ctime.minute)
     if 45 > ctime.minute > 15:
@@ -415,17 +413,17 @@ def send_shift_Summary(html_table, preview_window):
     date = datetime.now()
     today = date.strftime("%m/%d/%y")
 
-    shift_sum_recipients = employeeData['email']['Shift Sum List']
+    shift_sum_recipients = EMAILS['Shift Sum List']
 
-    test = employeeData['email']['Joseph Lang']
+    test = EMAILS['Joseph Lang']
     # Create the email message
     message = MIMEMultipart()
     message["Subject"] = f"{today} NCC Shift Summary"
-    message["From"] = employeeData['email']['NCC Desk']
-    message["To"] = ' , '.join(shift_sum_recipients)
+    message["From"] = EMAILS['NCC Desk']
+    message["To"] = ', '.join(shift_sum_recipients)
     #message["To"] = test
-    password = creds['credentials']['shiftsumEmail']
-    sender = employeeData['email']['NCC Desk']
+    password = CREDS['shiftsumEmail']
+    sender = EMAILS['NCC Desk']
     
     # Attach HTML content
     html_body = MIMEText(html_table, "html")

@@ -101,18 +101,21 @@ Move(Item, *)
 {
     WinMove(3297, 785, 284, 327, "NCC Desk Functions")
     WinMove(3624, 477, 429, 314, "Timestamps")
-    WinMove(3625, 785, 236, 301, "Alert Windows Info")
+    WinMove(3625, 785, 459, 301, "Alert Windows Info")
     WinMove(2156, 729, , , "Personnel On-Site")
     WinMove(2371, "-370", , , "Site Data")
     WinMove(6668, 195, , , "Soltage")
     WinMove(5385, 728, , , "NCEMC")
     WinMove(3000, 24, , , "NARENCO")
-    WinMove(4095, 21, , , "SOL River")
+
+    WinMove("4117", "-372", , , "SOL River")
+
     WinMove(5172, 8, , , "SOL River Continued")
+
     WinMove(6259, 26, , , "Harrison Street")
-   Sleep 1000
+
     
-WinMove(4350, 767, , , "Notified Events")
+WinMove(4350, 767, , , "Notified events")
 
 }
 
@@ -231,4 +234,10 @@ MouseMove 950, 550
 f2::{
 CoordMode "Mouse", "Screen"
 MouseMove 3645, 560
+}
+
+f3::{
+   CoordMode "Mouse", "Screen"
+   MouseMove 165, 1050
+   Click 165, 1050
 }

@@ -26,17 +26,12 @@ if WinWait("Timestamps", , 10) {
     WinMove(6668, 195, , , "Soltage")
     WinMove(5385, 728, , , "NCEMC")
     WinMove(3000, 24, , , "NARENCO")
-    Sleep 1000
-    WinMaximize("NARENCO")
-    WinMove(4095, 21, , , "SOL River")
-    Sleep 1000
-    WinMaximize("SOL River")
+
+    WinMove(4162, "-372", , , "SOL River")
+
     WinMove(5172, 8, , , "SOL River Continued")
-    Sleep 1000
-    WinMaximize("SOL River Continued")
+
     WinMove(6259, 26, , , "Harrison Street")
-    Sleep 1000
-    WinMaximize("Harrison Street")
 
    Sleep 1000
 

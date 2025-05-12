@@ -195,19 +195,17 @@ Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\restart.pyw"
 
 f8::{
     CoordMode "Mouse", "Screen"
-    Click 251, 1052
+    Click 205, 1053
     WinWait("Google Chrome", , 10)
         CoordMode "Mouse", "Window"
         WinActivate("Google Chrome")
         Sleep 1500
         Click 428, 341
         Sleep 1500
-        WinMove( 1916, 1072, 1936, 1048, "New Tab - Google Chrome")
-        Sleep 500
         Click 74, 111
         Sleep 500
     CoordMode "Mouse", "Screen"
-    Click 251, 1052
+    Click 205, 1053
     WinWait("Google Chrome", , 10)
         Sleep 2000
         Click 689, 470
@@ -232,10 +230,9 @@ f8::{
         Run "https://app.raptormaps.com/solar-sites"
         Sleep 100
         Run "https://academy.viewpoint.com/learn/signin"
-        Sleep 500
-        WinMove( 1916, 1072, 1936, 1048)
+        Sleep 1000
 
-    Click 251, 1052
+    Click 205, 1053
     WinWait("Google Chrome", , 10)
         Sleep 5000
         Click 870, 662
@@ -291,9 +288,7 @@ f8::{
         CoordMode "Mouse", "Window"
         Sleep 500
         Click 1862, 23
-        Sleep 3000
-        WinMove( 2056, "-6", 1656, 1013, "Google Keep - Google Chrome")
-        Sleep 500
+        Sleep 5000
         Click 1574, 15
 
         Sleep 10000
@@ -307,13 +302,10 @@ f8::{
         Winactivate("US LIL ZONE - PowerStudio Scada")
         Click 1880, 11
         Sleep 1000
-        If(A_DDDD = "Sunday" or A_DDDD = "Saturday")
-            WinMove 409, 286, 640, 480
-        Else
-            WinMove 347, 1323, 640, 480
+
+
         Sleep 2000
         Click 594, 16
-        WinMove(898, 1357, 500, 600, "Notified events")
         Sleep 250
         WinMinimize("Notified events")
 
@@ -323,15 +315,12 @@ f8::{
 
         Run "G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb"
         Sleep 5000
-        If(A_DDDD = "Sunday" or A_DDDD = "Saturday") {
-            CoordMode "Mouse", "Window"
-            WinActivate "Access - NCC 039 : Database- G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb (Access 2007 - 2016 file format)"
-            Click 1852, 17
-            Sleep 100
-            WinMove 149, 1205, 1440, 752, "Access - NCC 039 : Database- G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb (Access 2007 - 2016 file format)"
-            Sleep 250
-            Click 1359, 17
-        }
+        CoordMode "Mouse", "Window"
+        WinActivate "Access - NCC 039 : Database- G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb (Access 2007 - 2016 file format)"
+        Click 1852, 17
+        Sleep 100
+        Click 1359, 17
+        
 
         Sleep 1000
 

@@ -12,8 +12,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import smtplib
 
-with open(r"G:\Shared drives\O&M\NCC Automations\Credentials\app credentials.json", 'r') as credsfile:
-    creds = json.load(credsfile)
+from PythonTools import CREDS, EMAILS #Both of these Variables are Dictionaries with a single layer that holds Personnel data or app passwords
 
 slr_customer_data = []
 solt_customer_data = []
@@ -109,11 +108,6 @@ customer_report_items = [('Harrison St.', hst_customer_data, False), ('NARENCO',
                          ('NCEMC', nce_customer_data, False), 
                          ('Sol River', slr_customer_data, False), ('Soltage', solt_customer_data, True)]
 
-
-with open(r"G:\Shared drives\O&M\NCC Automations\Credentials\Employee Records.json", 'r') as credsfile:
-    employeeData = json.load(credsfile)
-with open(r"G:\Shared drives\O&M\NCC Automations\Credentials\app credentials.json", 'r') as credsfile:
-    creds = json.load(credsfile)
 
 def dbcnxn():
     global db, connect_db, c
@@ -376,35 +370,35 @@ def send_email(customer_data, window, customer):
     # Create the email message
     today = datetime.date.today().strftime("%m/%d/%y")
     message = MIMEMultipart()
-    me = employeeData['email']['Joseph Lang']
-    brandon = employeeData['email']['Brandon Arrowood']
+    me = EMAILS['Joseph Lang']
+    brandon = EMAILS['Brandon Arrowood']
     if customer == 'Harrison St.':
         message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
-        recipients = employeeData['email']['Harrison St']
+        recipients = EMAILS['Harrison St']
     elif customer == 'Sol River':
         message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
-        recipients = employeeData['email']['Sol River']
+        recipients = EMAILS['Sol River']
     elif customer == 'Soltage':
         message["Subject"] = f"NARENCO O&M | {today} Daily Report - {customer}"
         site_access = site_access_query('Soltage')
         message.attach(MIMEText(site_access, "html"))
-        recipients = employeeData['email']['Soltage']
+        recipients = EMAILS['Soltage']
     elif customer == 'NCEMC':
         message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
-        recipients = employeeData['email']['NCMEC']
+        recipients = EMAILS['NCMEC']
     elif customer == 'NARENCO':
         message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
-        recipients = employeeData['email']['NARENCO']
+        recipients = EMAILS['NARENCO']
     
 
-    message["From"] = employeeData['email']['NCC Desk']
+    message["From"] = EMAILS['NCC Desk']
     if testingvar.get():
         message["To"] = me
     else:
         message["To"] = ', '.join(recipients)
 
-    password = creds['credentials']['shiftsumEmail']
-    sender = employeeData['email']['NCC Desk']
+    password = CREDS['shiftsumEmail']
+    sender = EMAILS['NCC Desk']
 
     # Title/Header
     email_table = f"<h2 style='text-align: center; color: black;'>NCC Daily WO Report - {customer}</h2>"
