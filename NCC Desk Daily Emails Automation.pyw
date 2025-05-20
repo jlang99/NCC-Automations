@@ -3,11 +3,13 @@ import pyodbc
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from datetime import datetime
+from email.mime.application import MIMEApplication
+from datetime import datetime, date, time
 import time
 from tkinter import *
 from tkinter import simpledialog
 import openpyxl
+import pandas as pd
 from tkinter import messagebox
 import ctypes
 import cv2
@@ -22,6 +24,7 @@ import os
 from icecream import ic
 import json
 import tkinterweb
+
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -39,6 +42,10 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 openEventsSheet = '1byNW58NbhuDotmdzJEFplczsXLAP0iMyS9YVU5FqQgk'
 sheet_range= 'Open Events'
 
+
+
+
+#X-Elio Notification Functions
 def send_lily_email(solar_production, irradiance, updates):
     # Email configuration
     sender_email = EMAILS['NCC Desk']
@@ -188,12 +195,12 @@ def lily_email_data():
         pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
         text = pytesseract.image_to_string(inverted_image, config=myconfig)
         pattern = r"(\d+)\.?\,?(\d+)\.?(\d+)?"
-        lily_vals = re.findall(pattern, text)
-        print(lily_vals)
+        lilys = re.findall(pattern, text)
+        print(lilys)
         
         irradiance = "N/A"
 
-        for index, dig_set in enumerate(lily_vals, start=1):
+        for index, dig_set in enumerate(lilys, start=1):
             if len(dig_set) == 3 and dig_set[2]:
                 join_digs = f"{dig_set[0]},{dig_set[1]}.{dig_set[2]}"
             else:
@@ -205,7 +212,7 @@ def lily_email_data():
 
 
         #We Should check the values of the irradiance and power and if they're way off to not send the email. Thats the simplest way to work around this and then just run the program again. Exit early time.sleep(5) then call the email function again. 
-        if lily_vals == []:
+        if lilys == []:
             power = simpledialog.askfloat("Power not found", "Input MW Value (Cancel for N/A): ", parent=root)
         if power is None: #Is only None if you click Cancel
             power = "N/A"
@@ -263,7 +270,200 @@ def lily_ask():
     if response == 1:
         lily_email_data()
 
+#End of X-Elio Tasks
 
+#Brandons Tools
+def invoicing_noti():
+    db = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb;'
+    connect_dbn = pyodbc.connect(db)
+    c = connect_dbn.cursor()
+
+    if datetime.today().weekday() == 4: # Friday
+        table_name = "NARENCO_mf_Access_logs"
+        subject_prefix = "Weekday"
+    elif datetime.today().weekday() == 0: # Monday
+        table_name = "NARENCO_wkEnd_Access_logs"
+        subject_prefix = "Weekend"
+    else:
+        table_name = "NARENCO_mf_Access_logs"
+        subject_prefix = "Weekday - Test"
+
+
+    try:
+        c.execute(f"SELECT * FROM [{table_name}]")
+        entries = c.fetchall()
+    except pyodbc.ProgrammingError as e:
+        print(f"Error executing query for table {table_name}: {e}")
+        connect_dbn.close()
+        return
+    
+    connect_dbn.close() # Close the database connection
+
+    if not entries:
+        print(f"No entries found in {table_name} for today. Data: {entries}")
+        return # No data to email
+    processed_data_for_excel = []
+    # Define column names based on the expected query result
+    column_names = ["Unique ID", "WO No.", "Type", "Site (COUNT)",
+                     "Invoice / Quote", "Description", "Last Name",
+                       "Qty / Hours", "Rate", "Cost", "Markup %",
+                         "Markup Total Cost", "Adddate", "Addtime",
+                           "Date", "Site"]
+
+
+    for entry in entries:
+        start_date = entry[0]
+        start_time = entry[1]
+        end_date = entry[2]
+        end_time = entry[3]
+        location = entry[4]
+        company = entry[5]
+        employee = entry[6]
+        peepscount = entry[7]
+        notes = entry[8]
+
+        # Initialize all 16 Excel columns, defaulting to None (which becomes blank in Excel).
+        mileage_row = {col_name: None for col_name in column_names}
+
+        mileage_row["Adddate"] = start_date.date()
+        mileage_row["Date"] = start_date.date()
+        mileage_row["Addtime"] = start_time.time()
+        mileage_row["Type"] = 'Mileage'
+        mileage_row["Site"] = location
+        mileage_row["Invoice / Quote"] = 'Quote'
+        mileage_row["Site (COUNT)"] = 1
+        if " " in employee:
+            mileage_row["Last Name"] = employee.split(" ")[-1]
+        mileage_row["Description"] = notes
+
+        processed_data_for_excel.append(mileage_row)
+
+        # Initialize all 16 Excel columns, defaulting to None (which becomes blank in Excel).
+        traveltime_row = {col_name: None for col_name in column_names}
+
+        traveltime_row["Adddate"] = start_date.date()
+        traveltime_row["Date"] = start_date.date()
+        traveltime_row["Addtime"] = start_time.time()
+        traveltime_row["Type"] = 'Travel Time'
+        traveltime_row["Site"] = location
+        traveltime_row["Invoice / Quote"] = 'Quote'
+        traveltime_row["Site (COUNT)"] = 1
+        if " " in employee:
+            traveltime_row["Last Name"] = employee.split(" ")[-1]
+        traveltime_row["Description"] = notes
+
+        processed_data_for_excel.append(traveltime_row)
+
+        # Initialize all 16 Excel columns, defaulting to None (which becomes blank in Excel).
+        labor_row = {col_name: None for col_name in column_names}
+
+        labor_row["Adddate"] = start_date.date()
+        labor_row["Date"] = start_date.date()
+        labor_row["Addtime"] = start_time.time()
+        labor_row["Type"] = 'Labor'
+        labor_row["Site"] = location
+        labor_row["Invoice / Quote"] = 'Quote'
+        labor_row["Site (COUNT)"] = 1
+        if " " in employee:
+            labor_row["Last Name"] = employee.split(" ")[-1]
+        labor_row["Description"] = notes
+
+                # Calculate duration for Labor row
+        duration_str = "N/A"
+        start_datetime_obj = None
+        end_datetime_obj = None
+
+        # Create start datetime object
+        if start_date is not None and start_time is not None:
+            actual_start_date = start_date.date()
+            actual_start_time = start_time.time()
+            start_datetime_obj = datetime.combine(actual_start_date, actual_start_time)
+
+        # Create end datetime object
+        if end_date is not None and end_time is not None:
+            actual_end_date = end_date.date()
+            actual_end_time = end_time.time()
+            end_datetime_obj = datetime.combine(actual_end_date, actual_end_time)
+        
+        if start_datetime_obj and end_datetime_obj:
+            if end_datetime_obj >= start_datetime_obj:
+                time_difference = end_datetime_obj - start_datetime_obj
+                total_seconds = time_difference.total_seconds()
+                total_hours = total_seconds / 3600
+                duration_str = f"{total_hours:.2f}"
+        
+        labor_row["Qty / Hours"] = duration_str # This now holds the calculated duration for Labor
+
+
+        processed_data_for_excel.append(labor_row)
+
+    # Create a Pandas DataFrame
+    df = pd.DataFrame(processed_data_for_excel, columns=column_names)
+
+    # Define Excel file path and name
+    excel_filename = f"{subject_prefix}_Access_Logs_{datetime.today().strftime('%Y-%m-%d')}.xlsx"
+    # Using a temporary directory is safer for temporary files
+    excel_path = os.path.join(os.path.expanduser("~"), "AppData", "Local", "Temp", excel_filename)
+    # Ensure the directory exists (optional, temp dir usually exists)
+    os.makedirs(os.path.dirname(excel_path), exist_ok=True)
+
+    # Save DataFrame to Excel
+    try:
+        df.to_excel(excel_path, index=False)
+        print(f"Data saved to {excel_path}")
+    except Exception as e:
+        print(f"Error saving data to Excel: {e}")
+        return # Don't send email if file creation failed
+
+    # Email configuration
+    sender_email = EMAILS['NCC Desk']
+    recipient_email = f"{EMAILS['Joseph Lang']}, {EMAILS['Brandon Arrowood']}"
+    smtp_port = 587
+    smtp_username = EMAILS['NCC Desk']
+    smtp_password = CREDS['shiftsumEmail']
+
+    # Compose email message
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = recipient_email
+    msg['Subject'] = f"Invoicing Automation {subject_prefix} Access Logs - {datetime.today().strftime('%m/%d/%Y')}"
+
+    # Add body text
+    body = f"Please find the {subject_prefix} access logs attached."
+    msg.attach(MIMEText(body, 'plain'))
+
+    # Attach the Excel file
+    try:
+        with open(excel_path, "rb") as attachment:
+            part = MIMEApplication(attachment.read(), _subtype="xlsx")
+            part.add_header('Content-Disposition', 'attachment', filename=excel_filename)
+            msg.attach(part)
+        print(f"Attached {excel_filename}")
+    except Exception as e:
+        body += f"\n\nError attaching Excel file: {e}"
+
+    # Send the email
+    try:
+        with smtplib.SMTP("smtp.gmail.com", smtp_port) as server:
+            server.starttls()
+            server.login(smtp_username, smtp_password)
+            server.send_message(msg)
+        print(f"Email sent successfully to {recipient_email}")
+    except Exception as e:
+        print(f"Error sending email: {e}")
+    finally:
+        # Clean up the temporary Excel file
+        try:
+            os.remove(excel_path)
+            print(f"Removed temporary file: {excel_path}")
+        except OSError as e:
+            print(f"Error removing temporary file {excel_path}: {e}")
+
+#Brandon's Functions End
+    
+
+
+#Shift SUMMARY Functions
 def shift_Summary():
     db = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb;'
     connect_dbn = pyodbc.connect(db)
@@ -474,7 +674,8 @@ shift_summary_button = Button(root, command= lambda: shift_Summary(), text="Shif
 shift_summary_button.pack(pady= 1)
 lily_email_button = Button(root, command= lambda: lily_email_data(), text= "Lily Email", font=("Calibiri", 18), pady= 5, padx= 70)
 lily_email_button.pack(pady= 2)
-
+test_button = Button(root, command= lambda: invoicing_noti(), text= "Test", font=("Calibiri", 18), pady= 5, padx= 70)
+test_button.pack(pady= 2)
 
 test_frame = Frame(root)
 test_frame.pack()
@@ -612,5 +813,8 @@ else:
     ub4var.set(1)
 
 check_to_send()
+
+if datetime.now().weekday() in [0, 4]:
+    invoicing_noti()
 
 root.mainloop()
