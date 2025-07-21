@@ -89,17 +89,19 @@ location_dict = {
     62: ["Omnidian Hampton"],
     63: ["Washington"],
     64: ["Gray Fox"],
-    65: ["Whitehall"]
+    65: ["Whitehall"],
+    66: ['Williams'],
+    67: ['Bulloch']
 }
 
 customers_dict = {
-    'slr': ['Bulloch 1A', 'Bulloch 1B', 'Elk', 'Gray Fox', 'Harding', 'Mclean', 'Richmond Cadle', 'Shorthorn', 'Sunflower', 'Upson', 'Upson Ranch', 'Warbler', 'Washington', 'Whitehall', 'Whitetail'],
-    'solt': ['Conetoe 1', 'Duplin', 'Wayne I', 'Wayne II', 'Wayne III'],
-    'nar': ['Bluebird', 'Cardinal', 'Cougar', 'Cherry Blossom', 'Harrison', 'Hayes', 'Hickory', 'Violet', 'Wellons'],
-    'nce': ['Freight Line', 'Holly Swamp', 'PG Solar'],
-    'hst': ['BISHOPVILLE', 'HICKSON', 'OGBURN', 'JEFFERSON', 'Marshall', 'Tedder', 'Thunderhead', 'Van Buren'],
-    'xelio': ['Lily'],
-    'charter': ['Charter GM'],
+    'slr': {'Bulloch 1A', 'Bulloch 1B', 'Elk', 'Gray Fox', 'Harding', 'Mclean', 'Richmond Cadle', 'Shorthorn', 'Sunflower', 'Upson', 'Upson Ranch', 'Warbler', 'Washington', 'Whitehall', 'Whitetail'},
+    'solt': {'Conetoe 1', 'Duplin', 'Wayne I', 'Wayne II', 'Wayne III'},
+    'nar': {'Bluebird', 'Cardinal', 'Cougar', 'Cherry Blossom', 'Harrison', 'Hayes', 'Hickory', 'Violet', 'Wellons Farm'},
+    'nce': {'Freight Line', 'Holly Swamp', 'PG Solar'},
+    'hst': {'BISHOPVILLE', 'HICKSON', 'OGBURN', 'JEFFERSON', 'Marshall', 'Tedder', 'Thunderhead', 'Van Buren'},
+    'xelio': {'Lily'},
+    'charter': {'Charter GM'},
 }
 
 #Tuple is as follows = name, wo-report, access_log_report 
@@ -385,7 +387,7 @@ def send_email(customer_data, window, customer):
         recipients = EMAILS['Soltage']
     elif customer == 'NCEMC':
         message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
-        recipients = EMAILS['NCMEC']
+        recipients = EMAILS['NCEMC']
     elif customer == 'NARENCO':
         message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
         recipients = EMAILS['NARENCO']

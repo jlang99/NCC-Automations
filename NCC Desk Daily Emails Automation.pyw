@@ -209,9 +209,7 @@ def lily_email_data():
                 power = join_digs
             elif index == 2:
                 irradiance = join_digs
-
-
-        #We Should check the values of the irradiance and power and if they're way off to not send the email. Thats the simplest way to work around this and then just run the program again. Exit early time.sleep(5) then call the email function again. 
+        
         if lilys == []:
             power = simpledialog.askfloat("Power not found", "Input MW Value (Cancel for N/A): ", parent=root)
         if power is None: #Is only None if you click Cancel
@@ -231,6 +229,22 @@ def lily_email_data():
         
         if power and irradiance:
             send_lily_email(power, irradiance, update_data)
+    except pytesseract.pytesseract.TesseractNotFoundError:
+        print(f"Tesseract is not installed or not in {pytesseract.pytesseract.tesseract_cmd}.")
+
+        
+        power = simpledialog.askfloat("Power not found", "Input MW Value (Cancel for N/A): ", parent=root)
+        if power is None: #Is only None if you click Cancel
+            power = "N/A"
+        
+        irradiance = simpledialog.askfloat("Irradiance not found", "Input Irradiance Value (Cancel for N/A): ", parent=root)
+        if irradiance is None:  #Is only None if you click Cancel
+            irradiance = "N/A"
+
+        with open(lily_update_file, "r") as lilyfile:
+            update_data = lilyfile.read()
+        
+        send_lily_email(power, irradiance, update_data)
 
 
     except pyautogui.ImageNotFoundException:
@@ -468,7 +482,38 @@ def shift_Summary():
     db = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb;'
     connect_dbn = pyodbc.connect(db)
     c = connect_dbn.cursor()
-    firstentry = simpledialog.askinteger(title= "Shift Summary Query", prompt="Input the Activity Log ID from the First Entry of the Day")
+
+
+    # MS Access SQL uses Date() for the current date and DateValue() to extract the date part from a DateTime field.
+    query_min_id = """
+        SELECT MIN(ActivityLogID)
+        FROM [ShiftSummary]
+        WHERE [EditDate] IS NOT NULL
+          AND YEAR([EditDate]) = YEAR(Date())
+          AND MONTH([EditDate]) = MONTH(Date())
+          AND DAY([EditDate]) = DAY(Date())
+    """
+    initial_activity_id = None
+    try:
+        c.execute(query_min_id)
+        result = c.fetchone()
+        if result and result[0] is not None:
+            initial_activity_id = int(result[0])
+        else:
+            print("No entries found for today in ShiftSummary, or MIN(ActivityLogID) was NULL.")
+    except pyodbc.Error as ex:
+        sqlstate = ex.args[0]
+        messagebox.showerror("Database Error", f"Error fetching initial ActivityLogID: {sqlstate}\nPlease check the table/column names and database connection.\n{ex}", parent=root)
+        # initial_activity_id will remain None, dialog will show without a pre-filled value or user can cancel.
+
+    # --- Modified simpledialog call ---
+    firstentry = simpledialog.askinteger(
+        title="Shift Summary Query",
+        prompt="Confirm or input the ActivityLogID for today's first entry:",
+        initialvalue=initial_activity_id,  # Set the initial value here
+        parent=root # Good practice to set parent for dialogs
+    )
+
 
     c.execute(f"SELECT * FROM [ShiftSummary] WHERE [ActivityLogID] >= {firstentry}")
     todays_entries = c.fetchall()
@@ -641,6 +686,8 @@ def send_shift_Summary(html_table, preview_window):
     else:
         os.startfile(r"G:\Shared drives\O&M\NCC Automations\Notification System\Email Notification (Breaker).py")
         time.sleep(5)
+        os.startfile(r"G:\Shared drives\O&M\NCC Automations\Emails\Close AE GUI.ahk")
+        time.sleep(5)
         root.destroy()
 
 
@@ -674,8 +721,7 @@ shift_summary_button = Button(root, command= lambda: shift_Summary(), text="Shif
 shift_summary_button.pack(pady= 1)
 lily_email_button = Button(root, command= lambda: lily_email_data(), text= "Lily Email", font=("Calibiri", 18), pady= 5, padx= 70)
 lily_email_button.pack(pady= 2)
-test_button = Button(root, command= lambda: invoicing_noti(), text= "Test", font=("Calibiri", 18), pady= 5, padx= 70)
-test_button.pack(pady= 2)
+
 
 test_frame = Frame(root)
 test_frame.pack()
