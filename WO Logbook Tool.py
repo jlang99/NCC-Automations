@@ -6,7 +6,7 @@ import datetime
 import time
 from bs4 import BeautifulSoup
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -22,7 +22,6 @@ hst_customer_data = []
 
 xelio_customer_data = []
 charter_customer_data = []
-
 
 location_dict = {
     1: ["*"],
@@ -104,6 +103,16 @@ customers_dict = {
     'charter': {'Charter GM'},
 }
 
+customer_site_dict = {
+    'slr': ['Bulloch 1A', 'Bulloch 1B', 'Elk', 'Gray Fox', 'Harding', 'Mclean', 'Richmond', 'Shorthorn', 'Sunflower', 'Upson', 'Upson', 'Warbler', 'Washington', 'Whitehall', 'Whitetail'],
+    'solt': ['Conetoe', 'Duplin', 'Wayne I', 'Wayne II', 'Wayne III'],
+    'nar': ['Bluebird', 'Cardinal', 'Cougar', 'Cherry Blossom', 'Harrison', 'Hayes', 'Hickory', 'Violet', 'Wellons'],
+    'nce': ['Freight Line', 'Holly Swamp', 'PG'],
+    'hst': ['Bishopville II', 'Hickson', 'Ogburn', 'Jefferson', 'Marshall', 'Tedder', 'Thunderhead', 'Van Buren'],
+    'xelio': ['Lily'],
+    'charter': ['Charter GM'],
+}
+
 #Tuple is as follows = name, wo-report, access_log_report 
 #Will be used to identify users who get the report or do not. 
 customer_report_items = [('Harrison St.', hst_customer_data, False), ('NARENCO', nar_customer_data, False), 
@@ -136,6 +145,70 @@ def browse_files():
     else:
         parse_wo(wo_data)
 
+
+
+
+def time_validation(tvalue):
+    """Validates that the input is in HH:MM format."""
+    # An empty entry is a valid state
+    if not tvalue:
+        return True
+    # The final format is 5 characters long (e.g., "23:59")
+    if len(tvalue) > 5:
+        return False
+        
+    # Check the characters as they are typed
+    for i, char in enumerate(tvalue):
+        if i in [0, 1, 3, 4]:  # Positions for digits
+            if not char.isdigit():
+                return False
+        if i == 2:  # Position for the colon
+            if char != ':':
+                return False
+                
+    # Check the semantic value of the hour and minute
+    if len(tvalue) >= 2:
+        # Hour must be between 00 and 23
+        if int(tvalue[0:2]) > 23:
+            return False
+    if len(tvalue) == 5:
+        # Minute must be between 00 and 59
+        if int(tvalue[3:5]) > 59:
+            return False
+            
+    return True
+
+def date_validation(dvalue):
+    """Validates that the input is in mm/dd/yyyy format."""
+    # An empty entry is a valid state
+    if not dvalue:
+        return True
+    # The final format is 10 characters long
+    if len(dvalue) > 10:
+        return False
+
+    # Check the characters as they are typed
+    for i, char in enumerate(dvalue):
+        if i in [0, 1, 3, 4, 6, 7, 8, 9]:  # Positions for digits
+            if not char.isdigit():
+                return False
+        if i in [2, 5]:  # Positions for slashes
+            if char != '/':
+                return False
+
+    # Check the semantic value of the month and day
+    if len(dvalue) >= 2:
+        # Month must be between 01 and 12
+        month = int(dvalue[0:2])
+        if month < 1 or month > 12:
+            return False
+    if len(dvalue) >= 5:
+        # Day must be between 01 and 31
+        day = int(dvalue[3:5])
+        if day < 1 or day > 31:
+            return False
+    
+    return True
     
 def parse_wo(wos):
     global c
@@ -169,10 +242,10 @@ def parse_wo(wos):
             userlistid = 7
         elif row[0] == "JACOBBUD99":
             userlistid = 10
-        elif row[0] == "NARENCO":
+        elif row[0] in {"NARENCO", "JAYMEORR99", "BRANDONA99", "BRANDONA96","NEWMANSE99"}:
             userlistid = 3
         else:
-            messagebox.showerror(title="Exiting WO Input", message=f"Found Error in WO XL File\nUser is Neither:\nJoseph Lang\nJacob Budd\nBrandon Arrowood (NARENCO)\nWO: {wo}")
+            messagebox.showerror(title="Exiting WO Input", message=f"Found Error in WO XL File\nUser is Neither:\nJoseph Lang\nJacob Budd\nBrandon Arrowood (Admin Account)\nWO: {wo}")
             root.destroy()
 
         wo = row[2]
@@ -353,16 +426,9 @@ def parse_wo(wos):
         for customer, customer_data, site_access_log in customer_report_items:
             if site_access_log:
                 site_access_table = site_access_query(customer)
-                if "No Site Access Today" in site_access_table and customer_data:
-                    customer_noti(customer, customer_data, site_access_table)
-                elif customer_data:
-                    customer_noti(customer, customer_data, site_access_table)
-                elif "No Site Access Today" not in site_access_table:
-                    customer_noti(customer, customer_data, site_access_table)
+                customer_noti(customer, customer_data, site_access_table)
             else:
-                if customer_data:
-                    customer_noti(customer, customer_data, site_access_log)
-
+                customer_noti(customer, customer_data, site_access_log)
     else:
         connect_db.close()
         root.destroy()
@@ -516,6 +582,14 @@ def site_access_only():
             site_access_table = site_access_query(customer)
             customer_noti(customer, table, site_access_table)
 
+def manual_wo_reports():
+    for customer, customer_data, site_access_log in customer_report_items:
+        if site_access_log:
+            site_access_table = site_access_query(customer)
+            customer_noti(customer, customer_data, site_access_table)
+        else:
+            customer_noti(customer, customer_data, site_access_log)
+
 def customer_noti(customer, customer_data, site_access_table):
     # Title/Header
     html_table = f"<h2 style='text-align: center; color: black;'>NCC Daily WO Report - {customer}</h2>"
@@ -550,7 +624,9 @@ def customer_noti(customer, customer_data, site_access_table):
     preview_window = tk.Toplevel(root)
     preview_window.title(f"{customer} Report Preview")
     try:
-        preview_window.iconbitmap(r"G:\Shared drives\O&M\NCC Automations\Icons\email-1.ico")
+        # Note: The icon path should be valid for this to work.
+        # preview_window.iconbitmap(r"G:\Shared drives\O&M\NCC Automations\Icons\email-1.ico")
+        pass # Pass for now to make it runnable
     except Exception as e:
         print(f"Error loading icon: {e}")
     preview_window.geometry("1000x800")
@@ -564,26 +640,31 @@ def customer_noti(customer, customer_data, site_access_table):
     canvas = tk.Canvas(container_frame)
     scrollbar = tk.Scrollbar(container_frame, orient="vertical", command=canvas.yview)
     
-
-    
-    # Pack the scrollable_frame to expand and fill and canvas and scrollbar
     canvas.pack(side="left", fill="both", expand=True)
     scrollbar.pack(side="right", fill="y")
-    #scrollable_frame.pack(fill="x", expand=True)
     canvas.configure(yscrollcommand=scrollbar.set)
     scrollable_frame = tk.Frame(canvas)
     scrollable_frame_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+    def on_frame_configure(event=None):
+        """Reset the scroll region to encompass the inner frame"""
+        canvas.configure(scrollregion=canvas.bbox("all"))
+
+    scrollable_frame.bind("<Configure>", on_frame_configure)
     canvas.bind(
         "<Configure>",
         lambda e: FrameWidth(e, canvas, scrollable_frame_id)
     )
+    
+    def on_mousewheel(event):
+        canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+    canvas.bind_all("<MouseWheel>", on_mousewheel)
+
 
     if site_access_table:
         site_frame = tkinterweb.HtmlFrame(scrollable_frame)
         site_frame.load_html(site_access_table)
         site_frame.pack(expand=True, fill="x")
 
-    # Create an HtmlFrame widget to display the HTML table
     html_frame = tkinterweb.HtmlFrame(scrollable_frame)
     html_frame.load_html(html_table)
     html_frame.pack(expand=True, fill="x")
@@ -596,7 +677,6 @@ def customer_noti(customer, customer_data, site_access_table):
     grid_frame = tk.Frame(scrollable_frame)
     grid_frame.pack(expand=True, fill='both')
 
-
     # Add headers to the grid
     headers = ["✓= Include", "WO", "Site", "Start Date", "Start Time", "End Date", "End Time", "Issue"]
     for col, header in enumerate(headers):
@@ -606,44 +686,106 @@ def customer_noti(customer, customer_data, site_access_table):
     entry_widgets = []  # List to store entry widgets
     check_vars = []  # List to store checkbox variables
 
-    for row_index, row in enumerate(customer_data, start=1):
-        entry_row = []  # List to store entries for this row
-        check_var = tk.BooleanVar(value=True)  # Checkbox variable, default to True
+    # Populate the grid with existing data
+    for row_index, row_data in enumerate(customer_data, start=1):
+        entry_row = []
+        check_var = tk.BooleanVar(value=True)
         check_button = tk.Checkbutton(grid_frame, variable=check_var)
         check_button.grid(row=row_index, column=0, sticky="nsew")
         check_vars.append(check_var)
 
-        for col_index, value in enumerate(row):
-            entry = tk.Entry(grid_frame, borderwidth=1, relief="solid")
-            entry.insert(0, str(value))
-            entry.grid(row=row_index, column=col_index + 1, sticky="nsew")
-            entry_row.append(entry)
+        # The original data has 7 columns, so we map them to the 7 entry columns
+        for col_index, value in enumerate(row_data):
+            if col_index in [0, 1, 6]:
+                entry = tk.Entry(grid_frame, borderwidth=1, relief="solid")
+                entry.insert(0, str(value))
+                entry.grid(row=row_index, column=col_index + 1, sticky="nsew")
+                entry_row.append(entry)
+            elif col_index in [2, 4]:
+                entry = tk.Entry(grid_frame, borderwidth=1, relief="solid", validate='all', validatecommand=vcmd_date)
+                entry.insert(0, str(value))
+                entry.grid(row=row_index, column=col_index + 1, sticky="nsew")
+                entry_row.append(entry)
+            elif col_index in [3, 5]:
+                entry = tk.Entry(grid_frame, borderwidth=1, relief="solid", validate='all', validatecommand=vcmd_time)
+                entry.insert(0, str(value))
+                entry.grid(row=row_index, column=col_index + 1, sticky="nsew")
+                entry_row.append(entry)
         entry_widgets.append(entry_row)
 
-        # Configure the grid columns
-        for i in range(7):
-            grid_frame.grid_columnconfigure(i, weight=1, minsize=30)  # Smaller columns
+    # Configure the grid columns to be responsive
+    for i in range(7):
+        grid_frame.grid_columnconfigure(i, weight=1, minsize=30)
+    grid_frame.grid_columnconfigure(7, weight=10, minsize=100)
 
-        # Configure the last column to take the remaining space
-        grid_frame.grid_columnconfigure(7, weight=100, minsize=100) 
 
+    def add_new_row(customer):
+        """Creates a new empty row with a checkbox and entry widgets."""
+        # Calculate the next available row index
+        row_index = len(entry_widgets) + 1
+        
+        entry_row = []
+        check_var = tk.BooleanVar(value=True)
+        check_button = tk.Checkbutton(grid_frame, variable=check_var)
+        check_button.grid(row=row_index, column=0, sticky="nsew")
+        check_vars.append(check_var)
+
+        # Create 7 empty entry widgets for the new row
+        for col_index in range(7):
+            print(col_index)
+            if col_index in [0, 6]:
+                entry = tk.Entry(grid_frame, borderwidth=1, relief="solid")
+                entry.grid(row=row_index, column=col_index + 1, sticky="nsew")
+                entry_row.append(entry)
+            elif col_index in [2, 4]:
+                entry = tk.Entry(grid_frame, borderwidth=1, relief="solid", validate='all', validatecommand=vcmd_date)
+                entry.grid(row=row_index, column=col_index + 1, sticky="nsew")
+                entry_row.append(entry)
+            elif col_index in [3, 5]:
+                entry = tk.Entry(grid_frame, borderwidth=1, relief="solid", validate='all', validatecommand=vcmd_time)
+                entry.grid(row=row_index, column=col_index + 1, sticky="nsew")
+                entry_row.append(entry)
+            elif col_index == 1:
+                site = tk.StringVar()
+                sitedd = ttk.Combobox(grid_frame, textvariable= site)
+                if customer == "Harrison St.":
+                    sitedd['values'] = customer_site_dict['hst']
+                elif customer == "NARENCO":
+                    sitedd['values'] = customer_site_dict['nar']
+                elif customer == "NCEMC":
+                    sitedd['values'] = customer_site_dict['nce']
+                elif customer == "Soltage":
+                    sitedd['values'] = customer_site_dict['solt']
+                elif customer == "Sol River":
+                    sitedd['values'] = customer_site_dict['slr']
+                sitedd.grid(row=row_index, column=col_index + 1, sticky="nsew")
+                entry_row.append(sitedd)
+        
+        entry_widgets.append(entry_row)
+    add_new_row(customer)
     custom_data = []
     def collect_data():
-        custom_data.clear()  # Clear existing data
+        custom_data.clear()
         for entry_row, check_var in zip(entry_widgets, check_vars):
-            if check_var.get():  # Only include rows where the checkbox is selected
+            if check_var.get():
                 row_data = [entry.get() for entry in entry_row]
                 custom_data.append(row_data)
 
     button_frame = tk.Frame(preview_window)
-    button_frame.pack(fill="x")
-    # Add a button to send the email
+    button_frame.pack(fill="x", side="bottom")
+
     send_button = tk.Button(button_frame, text="Send Email -> Next Preview", command=lambda: [collect_data(), send_email(custom_data, preview_window, customer)], bg='lightgreen')
     send_button.pack(side="left", fill='x', expand=True)
-    next_preview_button = tk.Button(button_frame, text="Next Preview", command=lambda: preview_window.destroy(), bg='yellow')
-    next_preview_button.pack(side="right", fill='x', expand=True)
-    close_button = tk.Button(button_frame, text="Close Program", command=lambda: root.destroy(), bg='orange')
-    close_button.pack(side="right", fill='x', expand=True)
+
+    add_row_button = tk.Button(button_frame, text="Add Row", command=lambda: add_new_row(customer), bg='lightblue')
+    add_row_button.pack(side="left", fill='x', expand=True)
+
+    next_preview_button = tk.Button(button_frame, text="Next Preview", command=preview_window.destroy, bg='yellow')
+    next_preview_button.pack(side="left", fill='x', expand=True)
+
+    close_button = tk.Button(button_frame, text="Close Program", command=root.destroy, bg='orange')
+    close_button.pack(side="left", fill='x', expand=True)
+
 
 def FrameWidth(event, canvas, scrollable_frame):
     # Update the scrollregion of the canvas to match the size of the scrollable frame
@@ -655,7 +797,8 @@ def FrameWidth(event, canvas, scrollable_frame):
 # Set up the tkinter window
 root = tk.Tk()
 root.title("WO Processing Tool")
-
+vcmd_date = (root.register(date_validation), '%P')
+vcmd_time = (root.register(time_validation), '%P')
 testingvar = tk.BooleanVar()
 testingCB = tk.Checkbutton(root, text="Testing Mode", variable=testingvar)
 testingCB.pack()
@@ -664,6 +807,8 @@ testingCB.pack()
 browse_button = tk.Button(root, text="Select Daily WO File", command=browse_files, height=3, width=40)
 browse_button.pack()
 browse_button = tk.Button(root, text="Site Access Reports Only", command=site_access_only, height=3, width=40)
+browse_button.pack()
+browse_button = tk.Button(root, text="Manual Reports\n(No Emaint Excel File)", command=manual_wo_reports, height=3, width=40)
 browse_button.pack()
 # Run the tkinter main loop
 root.mainloop()
