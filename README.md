@@ -1,0 +1,1 @@
+#Open Issues Updater.pyw was used to help keep track of Work Orders and Issues on site; however, our team was unable to keep the Microsoft Access Logbook, so this files structure may become Deprecated.
