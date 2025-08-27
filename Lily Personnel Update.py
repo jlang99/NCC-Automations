@@ -59,7 +59,7 @@ def update_Sheet():
         if not entry[1] and not entry [2]:
             continue
         log_id = entry[0]
-        description = entry[8]
+        description = entry[10]
             
         # Format dates and times
         formatted_entry = (
@@ -68,17 +68,17 @@ def update_Sheet():
             entry[2], #Name
             format_datetime(entry[3], 'date'),
             format_datetime(entry[4], 'time'),
-            format_datetime(entry[5], 'date'),
-            format_datetime(entry[6], 'time'),
-            entry[7], #Total Work hours Float value
+            format_datetime(entry[6], 'date'),
+            format_datetime(entry[7], 'time'),
+            entry[9], #Total Work hours Float value
             description
         )
         dictkey = str(log_id) + formatted_entry[2]
         # Merge descriptions for the same log_id
         if dictkey in processed_data and processed_data[dictkey][2] == entry[2]:
             old_entry = processed_data[dictkey]
-            new_description = old_entry[8] + '; ' + description
-            new_entry = old_entry[:8] + (new_description,) 
+            new_description = old_entry[10] + '; ' + description
+            new_entry = old_entry[:10] + (new_description,) 
             processed_data[dictkey] = new_entry
         else:
             processed_data[dictkey] = formatted_entry
