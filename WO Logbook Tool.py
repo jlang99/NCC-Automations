@@ -179,35 +179,66 @@ def time_validation(tvalue):
     return True
 
 def date_validation(dvalue):
-    """Validates that the input is in mm/dd/yyyy format."""
+    """
+    Validates a date string for m/d/yy or mm/dd/yyyy format during entry.
+    It allows for partial input and ensures the structure and values are logical.
+    """
     # An empty entry is a valid state
     if not dvalue:
         return True
-    # The final format is 10 characters long
-    if len(dvalue) > 10:
+
+    # --- Basic structural checks ---
+    # 1. Ensure only digits and slashes are used.
+    # 2. Prevent more than two slashes or consecutive slashes ('//').
+    # 3. A date cannot start with a slash.
+    # 4. The total length cannot exceed 10 characters (for mm/dd/yyyy).
+    if any(c not in '0123456789/' for c in dvalue) or \
+       dvalue.count('/') > 2 or '//' in dvalue or \
+       dvalue.startswith('/') or len(dvalue) > 10:
         return False
 
-    # Check the characters as they are typed
-    for i, char in enumerate(dvalue):
-        if i in [0, 1, 3, 4, 6, 7, 8, 9]:  # Positions for digits
-            if not char.isdigit():
-                return False
-        if i in [2, 5]:  # Positions for slashes
-            if char != '/':
-                return False
+    # Split the input into parts to validate month, day, and year individually
+    parts = dvalue.split('/')
 
-    # Check the semantic value of the month and day
-    if len(dvalue) >= 2:
-        # Month must be between 01 and 12
-        month = int(dvalue[0:2])
-        if month < 1 or month > 12:
-            return False
-    if len(dvalue) >= 5:
-        # Day must be between 01 and 31
-        day = int(dvalue[3:5])
-        if day < 1 or day > 31:
-            return False
+    # --- Part-by-part validation ---
     
+    # Validate month (part 1)
+    if len(parts) >= 1:
+        month = parts[0]
+        # Month can't be longer than 2 digits or have a value > 12.
+        if len(month) > 2 or (month and int(month) > 12):
+            return False
+        # A two-digit month can't be '00'.
+        if len(month) == 2 and int(month) == 0:
+            return False
+
+    # Validate day (part 2)
+    if len(parts) >= 2:
+        day = parts[1]
+        # Day can't be longer than 2 digits or have a value > 31.
+        if len(day) > 2 or (day and int(day) > 31):
+            return False
+        # A two-digit day can't be '00'.
+        if len(day) == 2 and int(day) == 0:
+            return False
+
+    # Validate year (part 3)
+    if len(parts) == 3:
+        year = parts[2]
+        # Year can be 2 (yy) or 4 (yyyy) digits, so max length is 4.
+        if len(year) > 4:
+            return False
+            
+    # --- Semantic checks for partial input ---
+
+    # A single-digit month or day cannot be '0' if it's complete (i.e., followed by a slash)
+    # This prevents invalid dates like '0/5/24' or '4/0/24'.
+    if len(parts) > 1 and parts[0] == '0':
+        return False
+    if len(parts) > 2 and parts[1] == '0':
+        return False
+
+    # If all checks pass, the input is valid so far
     return True
     
 def parse_wo(wos):
@@ -663,19 +694,19 @@ def customer_noti(customer, customer_data, site_access_table):
     if site_access_table:
         site_frame = tkinterweb.HtmlFrame(scrollable_frame)
         site_frame.load_html(site_access_table)
-        site_frame.pack(expand=True, fill="x")
+        site_frame.pack(fill="x", padx=10, pady=5)
 
     html_frame = tkinterweb.HtmlFrame(scrollable_frame)
     html_frame.load_html(html_table)
-    html_frame.pack(expand=True, fill="x")
+    html_frame.pack(fill="x", padx=10, pady=5)
 
     #Instructions
     main_lbl = tk.Label(scrollable_frame, text='Edit the Table above with the one Below', borderwidth=1, relief="solid", font=('TkDefaultFont', 16))
-    main_lbl.pack(expand=True, fill='x')
+    main_lbl.pack(fill='x', padx=10, pady=(10,5))
     
     # Create a frame for the grid-based table
     grid_frame = tk.Frame(scrollable_frame)
-    grid_frame.pack(expand=True, fill='both')
+    grid_frame.pack(fill='both', padx=10, pady=5)
 
     # Add headers to the grid
     headers = ["✓= Include", "WO", "Site", "Start Date", "Start Time", "End Date", "End Time", "Issue"]
@@ -762,7 +793,7 @@ def customer_noti(customer, customer_data, site_access_table):
                 entry_row.append(sitedd)
         
         entry_widgets.append(entry_row)
-    add_new_row(customer)
+    
     custom_data = []
     def collect_data():
         custom_data.clear()
