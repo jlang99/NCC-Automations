@@ -6,7 +6,7 @@ import datetime
 import time
 from bs4 import BeautifulSoup
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, messagebox, ttk, simpledialog
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -240,6 +240,212 @@ def date_validation(dvalue):
 
     # If all checks pass, the input is valid so far
     return True
+
+#Shift SUMMARY Functions
+def shift_Summary():
+    db = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb;'
+    connect_dbn = pyodbc.connect(db)
+    c = connect_dbn.cursor()
+
+
+    # MS Access SQL uses Date() for the current date and DateValue() to extract the date part from a DateTime field.
+    query_min_id = """
+        SELECT MIN(ActivityLogID)
+        FROM [ShiftSummary]
+        WHERE [EditDate] IS NOT NULL
+          AND YEAR([EditDate]) = YEAR(Date())
+          AND MONTH([EditDate]) = MONTH(Date())
+          AND DAY([EditDate]) = DAY(Date())
+    """
+    initial_activity_id = None
+    try:
+        c.execute(query_min_id)
+        result = c.fetchone()
+        if result and result[0] is not None:
+            initial_activity_id = int(result[0])
+        else:
+            print("No entries found for today in ShiftSummary, or MIN(ActivityLogID) was NULL.")
+    except pyodbc.Error as ex:
+        sqlstate = ex.args[0]
+        messagebox.showerror("Database Error", f"Error fetching initial ActivityLogID: {sqlstate}\nPlease check the table/column names and database connection.\n{ex}", parent=root)
+        # initial_activity_id will remain None, dialog will show without a pre-filled value or user can cancel.
+
+    # --- Modified simpledialog call ---
+    firstentry = simpledialog.askinteger(
+        title="Shift Summary Query",
+        prompt="Confirm or input the ActivityLogID for today's first entry:",
+        initialvalue=initial_activity_id,  # Set the initial value here
+        parent=root # Good practice to set parent for dialogs
+    )
+
+
+    c.execute(f"SELECT * FROM [ShiftSummary] WHERE [ActivityLogID] >= {firstentry}")
+    todays_entries = c.fetchall()
+
+    todays_date = datetime.datetime.today().strftime('%m/%d/%Y')
+
+    # Initialize a dictionary to accumulate data for each ActivityLogID
+    activity_data = {}
+
+    # Iterate over each row in the entries
+    for row in todays_entries:
+        activitylog_id = row[0]
+        employee = row[5]
+        dickey = ''.join((str(activitylog_id), str(employee)))
+
+        # Check if the current ActivityLogID has already been processed
+        if dickey not in activity_data:
+            if row[8]:
+                worktype = str(row[7]) if row[7] else ''
+                workLog = ' | '.join((worktype, str(row[8]) if row[8] else ''))
+            else:
+                workLog = ''
+            if row[3] and row[4] and row[5] and row[6]:
+                siteAccess = ' | '.join(('', str(row[3]), str(row[4]), str(row[5]), str(row[6])))
+            else:
+                siteAccess = ''
+            if row[13]:
+                issueLog = ' | '.join((str(row[9]) if row[9] else '', str(row[10]) if row[10] else '', str(row[11]) if row[11] else '', str(row[12]) if row[12] else '', str(row[13]) if row[13] else ''))
+            else:
+                issueLog = ''
+            
+            try:
+                starttime = ' '.join((str(row[14].date()), str(row[15].time())))
+            except AttributeError:
+                starttime = ''
+                messagebox.showwarning(title="Missing Start Date/Time", message=f"Log Id: {activitylog_id}\nMissing Start Date/Time. Field will be blank in Shift Summary Table. Please input a Start Date/Time for {activitylog_id} and refresh table with 'Update Table' Button on Preview Window")
+            if row[16] and row[17]:
+                endtime = ' '.join((str(row[16].date()), str(row[17].time())))
+            else:
+                endtime = ''
+            # Initialize a new entry in the dictionary
+            activity_data[dickey] = {
+                'location': row[1],
+                'activity': row[2],
+                'site_access': siteAccess,
+                'site_work': [workLog],
+                'issue_tracking': issueLog,
+                'start_datetime': starttime,
+                'end_datetime': endtime,
+            }
+        else:
+            # Add data from row[7] and row[8] to the notes list
+            if row[7] is not None and row[8] is not None:
+                workLog = ' | '.join((str(row[7]), str(row[8])))
+                activity_data[dickey]['site_work'].append(workLog)
+
+
+    # Construct the HTML table
+    html_table = f"<h2 style='text-align: center; color: black;'>NCC Daily Activity Report for {todays_date}</h2>"
+    html_table += "<table style='border-collapse: collapse; width: 100%;'>"
+    html_table += "<tr style='background-color: lightgray;'>"
+    html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Location</th>"
+    html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Activity</th>"
+    html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Site Access</th>"
+    html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Site Work</th>"
+    html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Issue Tracking</th>"
+    html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>Start Date/Time</th>"
+    html_table += "<th style='border: 1px solid black; padding: 8px; color: black;'>End Date/Time</th>"
+    html_table += "</tr>"
+
+    # Iterate over the accumulated data to build the HTML rows
+    for dickey, data in activity_data.items():
+        html_table += "<tr>"
+        html_table += f"<td style='border: 1px solid black; padding: 8px; color: black; background-color: lightblue;'>{data['location']}</td>"
+        html_table += f"<td style='border: 1px solid black; padding: 8px; color: black; background-color: lightblue;'>{data['activity']}</td>"
+        html_table += f"<td style='border: 1px solid black; padding: 8px; color: black; background-color: lightblue;'>{data['site_access']}</td>"
+        notes_combined = "<br>".join(data['site_work'])
+        html_table += f"<td style='border: 1px solid black; padding: 8px; color: black; background-color: lightblue;'>{notes_combined}</td>"
+
+        html_table += f"<td style='border: 1px solid black; padding: 8px; color: black; background-color: lightblue;'>{data['issue_tracking']}</td>"
+        html_table += f"<td style='border: 1px solid black; padding: 8px; color: black; background-color: lightblue;'>{data['start_datetime']}</td>"
+        html_table += f"<td style='border: 1px solid black; padding: 8px; color: black; background-color: lightblue;'>{data['end_datetime']}</td>"
+
+        html_table += "</tr>"
+
+    html_table += "</table>"
+    # Display the table in a new window
+    preview_window = tk.Toplevel(root)
+    preview_window.title("Shift Summary Preview")
+    try:
+        preview_window.iconbitmap(r"G:\Shared drives\O&M\NCC Automations\Icons\email-1.ico")
+    except Exception as e:
+        print(f"Error loading icon: {e}")
+    preview_window.attributes("-fullscreen", True)
+
+    # Create a canvas and a scrollbar
+    canvas = tk.Canvas(preview_window)
+    scrollbar = tk.Scrollbar(preview_window, orient=tk.VERTICAL, command=canvas.yview)
+    scrollable_frame = tk.Frame(canvas)
+
+    scrollable_frame.bind(
+        "<Configure>",
+        lambda e: canvas.configure(
+            scrollregion=canvas.bbox("all")
+        )
+    )
+
+    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+    # Pack the scrollable_frame to expand and fill
+    scrollable_frame.pack(fill=tk.BOTH, expand=True)
+
+    # Pack the canvas and scrollbar
+    canvas.pack(fill=tk.BOTH, expand=True)
+
+    # Create an HtmlFrame widget to display the HTML table
+    html_frame = tkinterweb.HtmlFrame(scrollable_frame)
+    html_frame.load_html(html_table)
+    html_frame.pack(expand=True, fill=tk.BOTH)
+
+    # Create buttons for restarting or sending the email
+    button_frame = tk.Frame(preview_window)
+    button_frame.pack(fill=tk.X)
+
+    destroy_preview_button = tk.Button(button_frame, text="Close Preview", command=preview_window.destroy, width=50)
+    destroy_preview_button.pack(side=tk.LEFT, padx=10, pady=10)
+
+    destroy_root_button = tk.Button(button_frame, text="Close App", command=root.destroy, width=50)
+    destroy_root_button.pack(side=tk.LEFT, padx=10, pady=10)
+
+    restart_button = tk.Button(button_frame, text="Update Table", command=lambda: restart_shift_summary(preview_window), width=50)
+    restart_button.pack(side=tk.RIGHT, padx=10, pady=10)
+
+    send_button = tk.Button(button_frame, text="Send Email", command=lambda: send_shift_Summary(html_table, preview_window), width=50)
+    send_button.pack(side=tk.RIGHT, padx=10, pady=10)
+
+def restart_shift_summary(preview_window):
+    preview_window.destroy()
+    shift_Summary()
+
+def send_shift_Summary(html_table, preview_window):
+    date = datetime.datetime.now()
+    today = date.strftime("%m/%d/%y")
+
+    shift_sum_recipients = EMAILS['Shift Sum List']
+
+    test = EMAILS['Joseph Lang']
+    # Create the email message
+    message = MIMEMultipart()
+    message["Subject"] = f"{today} NCC Shift Summary"
+    message["From"] = EMAILS['NCC Desk']
+    message["To"] = ', '.join(shift_sum_recipients)
+    #message["To"] = test
+    password = CREDS['shiftsumEmail']
+    sender = EMAILS['NCC Desk']
+    
+    # Attach HTML content
+    html_body = MIMEText(html_table, "html")
+    message.attach(html_body)
+
+    # Send the email
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(sender, password)
+        server.sendmail(sender, shift_sum_recipients, message.as_string())    
+    
+    time.sleep(2.5)
+    os.system("shutdown /r /t 1")
+
     
 def parse_wo(wos):
     global c
@@ -460,9 +666,11 @@ def parse_wo(wos):
                 customer_noti(customer, customer_data, site_access_table)
             else:
                 customer_noti(customer, customer_data, site_access_log)
+        shift_Summary()
     else:
         connect_db.close()
-        root.destroy()
+        shift_Summary()
+
 
 def send_email(customer_data, window, customer):
     #print(f"Custom Data: {customer_data}")
