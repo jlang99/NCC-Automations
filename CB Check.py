@@ -22,91 +22,109 @@ cbSheet = '1RGUwARwDdfDoC8VcNQgb5KC6gPOA-rcMaPsu6vlzg9o'
 
 myappid = 'NCC.CB.Check'
 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-conetoe_24strs = [
+conetoe_24strs = {
     '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9', '1.10', 
     '1.11', '1.12', '2.1', '2.2', '2.3', '2.4', '2.5', '2.6', '2.7', '2.8', 
     '2.9', '2.10', '2.11', '2.12', '3.1', '3.2', '3.3', '3.4', '3.5', '3.6', 
     '3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '4.1', '4.2', '4.3', '4.4', 
     '4.5', '4.6', '4.7', '4.8', '4.9', '4.10', '4.11', '4.12'
-]
-conetoe_20strs = ['1.13']
+}
+conetoe_20strs = {'1.13'}
 conetoe_cbs = [conetoe_20strs, conetoe_24strs]
-hickory_15strs = [
+hickory_15strs = {
     'INV1A1 A', 'INV1A2 A', 'INV1A3 A', 'INV1A4 A', 'INV1A5 A', 'INV1A6 A', 
     'INV1A7 A', 'INV1A8 A', 'INV1A9 A', 'INV1B13 B', 'INV1B14 B', 'INV1B15 B', 
     'INV1B16 B', 'INV1B17 B', 'INV1B18 B', 'INV1B19 B', 'INV1B20 B', 'INV1B21 B', 
     'INV2A1 A', 'INV2A2 A', 'INV2A6 A', 'INV2A7 A', 'INV2A8 A', 'INV2A9 A', 
     'INV2A10 A', 'INV2A11 A', 'INV2A12 A', 'INV2B13 B', 'INV2B16 B', 'INV2B17 B', 
     'INV2B23 B'
-]
+}
 
-hickory_12strs = [
+hickory_12strs = {
     'INV1A10 A', 'INV1B23 B', 'INV1B24 B', 'INV2A3 A', 'INV2A4 A'
-]
+}
 
-hickory_18strs = [
+hickory_18strs = {
     'INV1A11 A', 'INV2B22 B'
-]
+}
 
-hickory_20strs = [
+hickory_20strs = {
     'INV1A12 A'
-]
+}
 
-hickory_11strs = [
+hickory_11strs = {
     'INV2A5 A'
-]
+}
 
-hickory_16strs = [
+hickory_16strs = {
     'INV2B14 B'
-]
+}
 
-hickory_17strs = [
+hickory_17strs = {
     'INV2B15 B', 'INV2B19 B'
-]
+}
 
-hickory_14strs = [
+hickory_14strs = {
     'INV2B20 B', 'INV2B24 B'
-]
+}
 hickory_cbs = [hickory_11strs, hickory_12strs, hickory_14strs, hickory_15strs, hickory_16strs, hickory_17strs, hickory_18strs, hickory_20strs]
-wellons_22strs = [
+wellons_22strs = {
     'CB1-1', 'CB1-2', 'CB1-3', 'CB1-4', 'CB1-5', 'CB1-6', 'CB1-9', 'CB1-10', 
     'CB1-11', 'CB1-12', 'CB1-13', 'CB1-14', 'CB1-15', 'CB1-16', 'CB2-1', 'CB2-2', 
     'CB2-3', 'CB2-4', 'CB2-5', 'CB2-6', 'CB2-7'
-]
+}
 
-wellons_18strs = [
+wellons_18strs = {
     'CB1-8', 'CB2-10', 'CB2-12', 'CB2-13', 'CB2-14', 'CB2-15', 'CB2-16', 'CB2-17'
-]
+}
 
-wellons_20strs = [
+wellons_20strs = {
     'CB1-17', 'CB1-18', 'CB2-8', 'CB2-9', 'CB2-11', 'CB2-18'
-]
+}
 
-wellons_28strs = [
+wellons_28strs = {
     'CB3-1', 'CB3-2', 'CB3-3', 'CB3-4', 'CB3-5', 'CB3-6', 'CB3-7', 'CB3-8', 
     'CB3-9', 'CB3-10', 'CB3-11', 'CB3-12', 'CB3-13', 'CB3-14'
-]
+}
 wellons_cbs = [wellons_18strs, wellons_20strs, wellons_22strs, wellons_28strs]
-violet18strs = [
+violet18strs = {
     'dc_11', 'dc_13', 'dc_14', 'dc_15', 'dc_16', 'dc_17', 'dc_18', 'dc_19', 
     'dc_110', 'dc_111', 'dc_112', 'dc_22', 'dc_23', 'dc_24', 'dc_25', 'dc_26', 
     'dc_27', 'dc_212', 'dc_213', 'dc_41', 'dc_42', 'dc_43', 'dc_44', 'dc_45', 
-    'dc_46', 'dc_47']
-violet16strs = ['dc_21', 'dc_28', 'dc_29', 'dc_210', 'dc_37', 'dc_410', 'dc_48', 'dc_311', 'dc_312']
-violet14strs = ['dc_38', 'dc_39', 'dc_310', 'dc_12']
-violet20strs = ['dc_32', 'dc_33', 'dc_34']
-violet28strs = ['dc_35', 'dc_36']
-violetNA = ['dc_211', 'dc_411', 'dc_412']
+    'dc_46', 'dc_47'}
+violet16strs = {'dc_21', 'dc_28', 'dc_29', 'dc_210', 'dc_37', 'dc_410', 'dc_48', 'dc_311', 'dc_312'}
+violet14strs = {'dc_38', 'dc_39', 'dc_310', 'dc_12'}
+violet20strs = {'dc_32', 'dc_33', 'dc_34'}
+violet28strs = {'dc_35', 'dc_36'}
+violetNA = {'dc_211', 'dc_411', 'dc_412'}
 violetcbs = [violet18strs, violet16strs, violet14strs, violet20strs, violet28strs]
 
 credentials = None
 if os.path.exists("aeCB-token.json"):
     credentials = Credentials.from_authorized_user_file("aeCB-token.json", SCOPES)
 if not credentials or not credentials.valid:
-    if credentials and credentials.expired and credentials.refresh_token:
-        credentials.refresh(Request())
-    else:
-        flow = InstalledAppFlow.from_client_secrets_file(r"C:\Users\OMOPS.AzureAD\Python Codes\NCC-AutomationCredentials.json", SCOPES)
+    try:
+        if credentials and credentials.expired and credentials.refresh_token:
+            credentials.refresh(Request())
+        else:
+            # This block will run if credentials are None, invalid, or don't have a refresh token.
+            flow = InstalledAppFlow.from_client_secrets_file(r"G:\Shared drives\O&M\NCC Automations\Daily Automations\NCC-AutomationCredentials.json", SCOPES)
+            credentials = flow.run_local_server(port=0)
+        # Save the credentials for the next run
+        with open("aeCB-token.json", "w") as token:
+            token.write(credentials.to_json())
+    except Exception as e: # Catches google.auth.exceptions.RefreshError and others
+        if 'invalid_grant' in str(e):
+            print("Refresh token is invalid. Deleting token file and re-authenticating.")
+            os.remove("aeCB-token.json")
+            # After deleting the token, we explicitly start the flow again.
+            flow = InstalledAppFlow.from_client_secrets_file(r"G:\Shared drives\O&M\NCC Automations\Daily Automations\NCC-AutomationCredentials.json", SCOPES)
+            credentials = flow.run_local_server(port=0)
+            with open("aeCB-token.json", "w") as token:
+                token.write(credentials.to_json())
+        else:
+            raise # Re-raise the exception if it's not an invalid_grant error.
+        flow = InstalledAppFlow.from_client_secrets_file(r"G:\Shared drives\O&M\NCC Automations\Daily Automations\NCC-AutomationCredentials.json", SCOPES)
         credentials = flow.run_local_server(port=0)
     with open("aeCB-token.json", "w+") as token:
         token.write(credentials.to_json())

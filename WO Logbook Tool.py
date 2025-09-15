@@ -1,5 +1,5 @@
 #WO Logbook Tool
-import os, re, tkinterweb, json
+import os, re, tkinterweb, json, sys
 import pyodbc
 from openpyxl import load_workbook, Workbook
 import datetime
@@ -12,7 +12,12 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import smtplib
 
-from PythonTools import CREDS, EMAILS #Both of these Variables are Dictionaries with a single layer that holds Personnel data or app passwords
+# Add the parent directory ('NCC Automations') to the Python path
+# This allows us to import the 'PythonTools' package from there.
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(parent_dir)
+from PythonTools import CREDS, EMAILS, LOGBOOK_LOCATION_MAP, CUSTOMERS_SITES_EMAINT, CUSTOMERS_SITES_NORMAL_NAMING, restart_pc, legible_date_validation, time_validation
+
 
 slr_customer_data = []
 solt_customer_data = []
@@ -22,96 +27,6 @@ hst_customer_data = []
 
 xelio_customer_data = []
 charter_customer_data = []
-
-location_dict = {
-    1: ["*"],
-    2: ["Abbot"],
-    3: ["Blacktip"],
-    4: ["Bluebird"],
-    5: ["Cardinal"],
-    6: ["Cherry Blossom"],
-    7: ["Conetoe 1"],
-    8: ["Cougar"],
-    9: ["Duplin"],
-    10: ["Freight Line"],
-    11: ["Harrison"],
-    12: ["Hayes"],
-    13: ["Hickory"],
-    14: ["Holly Swamp"],
-    15: ["Lily"],
-    16: ["PG Solar"],
-    17: ["Tamworth"],
-    18: ["Tanager"],
-    19: ["Van Buren"],
-    20: ["Violet"],
-    21: ["Warbler"],
-    22: ["Wayne I"],
-    23: ["Wayne II"],
-    24: ["Wayne III"],
-    25: ["Wellons Farm"],
-    26: ["Whitetail"],
-    27: ["Whitt"],
-    28: ["Charter GM"],
-    29: ["Gaston PD"],
-    30: ["NCC"],
-    31: ["Biltmore Estates"],
-    32: ["Stanly"],
-    33: ["Tedder"],
-    34: ["Thunderhead"],
-    35: ["Volvo"],
-    36: ["Marshall"],
-    37: ["Shoe Show"],
-    38: ["Statesboro"],
-    39: ["Bulloch 1A"],
-    40: ["Bulloch 1B"],
-    41: ["Upson Ranch", "Upson"],
-    42: ["Richmond Cadle"],
-    43: ["BISHOPVILLE"],
-    44: ["HICKSON"],
-    45: ["JEFFERSON"],
-    46: ["OGBURN"],
-    47: ["Mclean"],
-    48: ["Shorthorn"],
-    49: ["Bluegrass"],
-    50: ["Omnidian Jefferson"],
-    51: ["Omnidian Stephens"],
-    52: ["Harding"],
-    53: ["Omnidian Davidson I"],
-    54: ["BE Solar"],
-    55: ["Elk"],
-    56: ["Brady"],
-    57: ["CDIA"],
-    58: ["Sunflower"],
-    59: ["Wadley"],
-    60: ["Omnidian Davidson II"],
-    61: ["Omnidian Sutton"],
-    62: ["Omnidian Hampton"],
-    63: ["Washington"],
-    64: ["Gray Fox"],
-    65: ["Whitehall"],
-    66: ['Williams'],
-    67: ['Bulloch']
-}
-
-customers_dict = {
-    'slr': {'Bulloch 1A', 'Bulloch 1B', 'Elk', 'Gray Fox', 'Harding', 'Mclean', 'Richmond Cadle', 'Shorthorn', 'Sunflower', 'Upson', 'Upson Ranch', 'Warbler', 'Washington', 'Whitehall', 'Whitetail'},
-    'solt': {'Conetoe 1', 'Duplin', 'Wayne I', 'Wayne II', 'Wayne III'},
-    'nar': {'Bluebird', 'Cardinal', 'Cougar', 'Cherry Blossom', 'Harrison', 'Hayes', 'Hickory', 'Violet', 'Wellons Farm'},
-    'nce': {'Freight Line', 'Holly Swamp', 'PG Solar'},
-    'hst': {'BISHOPVILLE', 'HICKSON', 'OGBURN', 'JEFFERSON', 'Marshall', 'Tedder', 'Thunderhead', 'Van Buren'},
-    'xelio': {'Lily'},
-    'charter': {'Charter GM'},
-}
-
-customer_site_dict = {
-    'slr': ['Bulloch 1A', 'Bulloch 1B', 'Elk', 'Gray Fox', 'Harding', 'Mclean', 'Richmond', 'Shorthorn', 'Sunflower', 'Upson', 'Upson', 'Warbler', 'Washington', 'Whitehall', 'Whitetail'],
-    'solt': ['Conetoe', 'Duplin', 'Wayne I', 'Wayne II', 'Wayne III'],
-    'nar': ['Bluebird', 'Cardinal', 'Cougar', 'Cherry Blossom', 'Harrison', 'Hayes', 'Hickory', 'Violet', 'Wellons'],
-    'nce': ['Freight Line', 'Holly Swamp', 'PG'],
-    'hst': ['Bishopville II', 'Hickson', 'Ogburn', 'Jefferson', 'Marshall', 'Tedder', 'Thunderhead', 'Van Buren'],
-    'xelio': ['Lily'],
-    'charter': ['Charter GM'],
-}
 
 #Tuple is as follows = name, wo-report, access_log_report 
 #Will be used to identify users who get the report or do not. 
@@ -144,102 +59,6 @@ def browse_files():
         return
     else:
         parse_wo(wo_data)
-
-
-
-
-def time_validation(tvalue):
-    """Validates that the input is in HH:MM format."""
-    # An empty entry is a valid state
-    if not tvalue:
-        return True
-    # The final format is 5 characters long (e.g., "23:59")
-    if len(tvalue) > 5:
-        return False
-        
-    # Check the characters as they are typed
-    for i, char in enumerate(tvalue):
-        if i in [0, 1, 3, 4]:  # Positions for digits
-            if not char.isdigit():
-                return False
-        if i == 2:  # Position for the colon
-            if char != ':':
-                return False
-                
-    # Check the semantic value of the hour and minute
-    if len(tvalue) >= 2:
-        # Hour must be between 00 and 23
-        if int(tvalue[0:2]) > 23:
-            return False
-    if len(tvalue) == 5:
-        # Minute must be between 00 and 59
-        if int(tvalue[3:5]) > 59:
-            return False
-            
-    return True
-
-def date_validation(dvalue):
-    """
-    Validates a date string for m/d/yy or mm/dd/yyyy format during entry.
-    It allows for partial input and ensures the structure and values are logical.
-    """
-    # An empty entry is a valid state
-    if not dvalue:
-        return True
-
-    # --- Basic structural checks ---
-    # 1. Ensure only digits and slashes are used.
-    # 2. Prevent more than two slashes or consecutive slashes ('//').
-    # 3. A date cannot start with a slash.
-    # 4. The total length cannot exceed 10 characters (for mm/dd/yyyy).
-    if any(c not in '0123456789/' for c in dvalue) or \
-       dvalue.count('/') > 2 or '//' in dvalue or \
-       dvalue.startswith('/') or len(dvalue) > 10:
-        return False
-
-    # Split the input into parts to validate month, day, and year individually
-    parts = dvalue.split('/')
-
-    # --- Part-by-part validation ---
-    
-    # Validate month (part 1)
-    if len(parts) >= 1:
-        month = parts[0]
-        # Month can't be longer than 2 digits or have a value > 12.
-        if len(month) > 2 or (month and int(month) > 12):
-            return False
-        # A two-digit month can't be '00'.
-        if len(month) == 2 and int(month) == 0:
-            return False
-
-    # Validate day (part 2)
-    if len(parts) >= 2:
-        day = parts[1]
-        # Day can't be longer than 2 digits or have a value > 31.
-        if len(day) > 2 or (day and int(day) > 31):
-            return False
-        # A two-digit day can't be '00'.
-        if len(day) == 2 and int(day) == 0:
-            return False
-
-    # Validate year (part 3)
-    if len(parts) == 3:
-        year = parts[2]
-        # Year can be 2 (yy) or 4 (yyyy) digits, so max length is 4.
-        if len(year) > 4:
-            return False
-            
-    # --- Semantic checks for partial input ---
-
-    # A single-digit month or day cannot be '0' if it's complete (i.e., followed by a slash)
-    # This prevents invalid dates like '0/5/24' or '4/0/24'.
-    if len(parts) > 1 and parts[0] == '0':
-        return False
-    if len(parts) > 2 and parts[1] == '0':
-        return False
-
-    # If all checks pass, the input is valid so far
-    return True
 
 #Shift SUMMARY Functions
 def shift_Summary():
@@ -444,7 +263,7 @@ def send_shift_Summary(html_table, preview_window):
         server.sendmail(sender, shift_sum_recipients, message.as_string())    
     
     time.sleep(2.5)
-    os.system("shutdown /r /t 1")
+    restart_pc() #Force Restart
 
     
 def parse_wo(wos):
@@ -490,7 +309,7 @@ def parse_wo(wos):
         activityid = 3
 
         locationid = None
-        for key, locations in location_dict.items():
+        for key, locations in LOGBOOK_LOCATION_MAP.items():
             if site in locations:
                 locationid = key
                 break
@@ -498,7 +317,7 @@ def parse_wo(wos):
             messagebox.showerror(title="Site Not Found", message=f"Site '{site}' not found in location dictionary.\nWO: {wo}")
             root.destroy()
 
-        for customervar, siteList in customers_dict.items():
+        for customervar, siteList in CUSTOMERS_SITES_EMAINT.items():
             if site in siteList:
                 customer = customervar
                 break
@@ -666,10 +485,8 @@ def parse_wo(wos):
                 customer_noti(customer, customer_data, site_access_table)
             else:
                 customer_noti(customer, customer_data, site_access_log)
-        shift_Summary()
     else:
         connect_db.close()
-        shift_Summary()
 
 
 def send_email(customer_data, window, customer):
@@ -988,15 +805,15 @@ def customer_noti(customer, customer_data, site_access_table):
                 site = tk.StringVar()
                 sitedd = ttk.Combobox(grid_frame, textvariable= site)
                 if customer == "Harrison St.":
-                    sitedd['values'] = customer_site_dict['hst']
+                    sitedd['values'] = CUSTOMERS_SITES_NORMAL_NAMING['hst']
                 elif customer == "NARENCO":
-                    sitedd['values'] = customer_site_dict['nar']
+                    sitedd['values'] = CUSTOMERS_SITES_NORMAL_NAMING['nar']
                 elif customer == "NCEMC":
-                    sitedd['values'] = customer_site_dict['nce']
+                    sitedd['values'] = CUSTOMERS_SITES_NORMAL_NAMING['nce']
                 elif customer == "Soltage":
-                    sitedd['values'] = customer_site_dict['solt']
+                    sitedd['values'] = CUSTOMERS_SITES_NORMAL_NAMING['solt']
                 elif customer == "Sol River":
-                    sitedd['values'] = customer_site_dict['slr']
+                    sitedd['values'] = CUSTOMERS_SITES_NORMAL_NAMING['slr']
                 sitedd.grid(row=row_index, column=col_index + 1, sticky="nsew")
                 entry_row.append(sitedd)
         
@@ -1035,19 +852,23 @@ def FrameWidth(event, canvas, scrollable_frame):
     
 # Set up the tkinter window
 root = tk.Tk()
-root.title("WO Processing Tool")
-vcmd_date = (root.register(date_validation), '%P')
+root.title("NCC End of Shift Tool")
+root.config(bg='gray')
+vcmd_date = (root.register(legible_date_validation), '%P')
 vcmd_time = (root.register(time_validation), '%P')
 testingvar = tk.BooleanVar()
-testingCB = tk.Checkbutton(root, text="Testing Mode", variable=testingvar)
+testingCB = tk.Checkbutton(root, text="Testing Mode", variable=testingvar, bg='gray')
 testingCB.pack()
 
 # Create a button to browse files
-browse_button = tk.Button(root, text="Select Daily WO File", command=browse_files, height=3, width=40)
+browse_button = tk.Button(root, text="Select Daily WO File", command=browse_files, height=3, width=40, bg='lightgreen')
 browse_button.pack()
-browse_button = tk.Button(root, text="Site Access Reports Only", command=site_access_only, height=3, width=40)
-browse_button.pack()
-browse_button = tk.Button(root, text="Manual Reports\n(No Emaint Excel File)", command=manual_wo_reports, height=3, width=40)
-browse_button.pack()
+access_button = tk.Button(root, text="Site Access Reports Only", command=site_access_only, height=3, width=40, bg='yellow')
+access_button.pack()
+manual_button = tk.Button(root, text="Manual Reports\n(No Emaint Excel File)", command=manual_wo_reports, height=3, width=40, bg='orange')
+manual_button.pack()
+sSum_button = tk.Button(root, text="Shift Summary", command=shift_Summary, height=3, width=40, bg='lightblue')
+sSum_button.pack()
+
 # Run the tkinter main loop
 root.mainloop()

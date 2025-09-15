@@ -1,3 +1,8 @@
-import os
+import sys, os
+#my Package
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(parent_dir)
+from PythonTools import restart_pc
 
-os.system("shutdown /r /t 1")
+restart_pc()
+

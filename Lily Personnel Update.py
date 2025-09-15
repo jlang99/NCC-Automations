@@ -32,10 +32,28 @@ def update_Sheet():
     if os.path.exists("XelioUpdate-token.json"):
         credentials = Credentials.from_authorized_user_file("XelioUpdate-token.json", SCOPES)
     if not credentials or not credentials.valid:
-        if credentials and credentials.expired and credentials.refresh_token:
-            credentials.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(r"C:\Users\OMOPS.AzureAD\Python Codes\NCC-AutomationCredentials.json", SCOPES)
+        try:
+            if credentials and credentials.expired and credentials.refresh_token:
+                credentials.refresh(Request())
+            else:
+                # This block will run if credentials are None, invalid, or don't have a refresh token.
+                flow = InstalledAppFlow.from_client_secrets_file(r"G:\Shared drives\O&M\NCC Automations\Daily Automations\NCC-AutomationCredentials.json", SCOPES)
+                credentials = flow.run_local_server(port=0)
+            # Save the credentials for the next run
+            with open("XelioUpdate-token.json", "w") as token:
+                token.write(credentials.to_json())
+        except Exception as e: # Catches google.auth.exceptions.RefreshError and others
+            if 'invalid_grant' in str(e):
+                print("Refresh token is invalid. Deleting token file and re-authenticating.")
+                os.remove("XelioUpdate-token.json")
+                # After deleting the token, we explicitly start the flow again.
+                flow = InstalledAppFlow.from_client_secrets_file(r"G:\Shared drives\O&M\NCC Automations\Daily Automations\NCC-AutomationCredentials.json", SCOPES)
+                credentials = flow.run_local_server(port=0)
+                with open("XelioUpdate-token.json", "w") as token:
+                    token.write(credentials.to_json())
+            else:
+                raise # Re-raise the exception if it's not an invalid_grant error.
+            flow = InstalledAppFlow.from_client_secrets_file(r"G:\Shared drives\O&M\NCC Automations\Daily Automations\NCC-AutomationCredentials.json", SCOPES)
             credentials = flow.run_local_server(port=0)
         with open("XelioUpdate-token.json", "w+") as token:
             token.write(credentials.to_json())
