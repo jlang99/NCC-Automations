@@ -830,13 +830,13 @@ def customer_noti(customer, customer_data, site_access_table):
     button_frame = tk.Frame(preview_window)
     button_frame.pack(fill="x", side="bottom")
 
-    send_button = tk.Button(button_frame, text="Send Email -> Next Preview", command=lambda: [collect_data(), send_email(custom_data, preview_window, customer)], bg='lightgreen')
+    send_button = tk.Button(button_frame, text="Send Email", command=lambda: [collect_data(), send_email(custom_data, preview_window, customer)], bg='lightgreen')
     send_button.pack(side="left", fill='x', expand=True)
 
     add_row_button = tk.Button(button_frame, text="Add Row", command=lambda: add_new_row(customer), bg='lightblue')
     add_row_button.pack(side="left", fill='x', expand=True)
 
-    next_preview_button = tk.Button(button_frame, text="Next Preview", command=preview_window.destroy, bg='yellow')
+    next_preview_button = tk.Button(button_frame, text="Close This Window", command=preview_window.destroy, bg='yellow')
     next_preview_button.pack(side="left", fill='x', expand=True)
 
     close_button = tk.Button(button_frame, text="Close Program", command=root.destroy, bg='orange')

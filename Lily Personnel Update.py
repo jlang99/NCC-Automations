@@ -8,14 +8,15 @@ import sys
 
 from icecream import ic
 
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+# Add the parent directory ('NCC Automations') to the Python path
+# This allows us to import the 'PythonTools' package from there.
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(parent_dir)
+from PythonTools import get_google_credentials
 
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 test_sheet_ID = '1Uq8LSya5w6xiAbFhqeCa1upT2Zs-ueQmYFP6cxNkOkI'
 
 def dbcnxn():
@@ -28,36 +29,9 @@ def dbcnxn():
     
 def update_Sheet():
     dbcnxn()
-    credentials = None
-    if os.path.exists("XelioUpdate-token.json"):
-        credentials = Credentials.from_authorized_user_file("XelioUpdate-token.json", SCOPES)
-    if not credentials or not credentials.valid:
-        try:
-            if credentials and credentials.expired and credentials.refresh_token:
-                credentials.refresh(Request())
-            else:
-                # This block will run if credentials are None, invalid, or don't have a refresh token.
-                flow = InstalledAppFlow.from_client_secrets_file(r"G:\Shared drives\O&M\NCC Automations\Daily Automations\NCC-AutomationCredentials.json", SCOPES)
-                credentials = flow.run_local_server(port=0)
-            # Save the credentials for the next run
-            with open("XelioUpdate-token.json", "w") as token:
-                token.write(credentials.to_json())
-        except Exception as e: # Catches google.auth.exceptions.RefreshError and others
-            if 'invalid_grant' in str(e):
-                print("Refresh token is invalid. Deleting token file and re-authenticating.")
-                os.remove("XelioUpdate-token.json")
-                # After deleting the token, we explicitly start the flow again.
-                flow = InstalledAppFlow.from_client_secrets_file(r"G:\Shared drives\O&M\NCC Automations\Daily Automations\NCC-AutomationCredentials.json", SCOPES)
-                credentials = flow.run_local_server(port=0)
-                with open("XelioUpdate-token.json", "w") as token:
-                    token.write(credentials.to_json())
-            else:
-                raise # Re-raise the exception if it's not an invalid_grant error.
-            flow = InstalledAppFlow.from_client_secrets_file(r"G:\Shared drives\O&M\NCC Automations\Daily Automations\NCC-AutomationCredentials.json", SCOPES)
-            credentials = flow.run_local_server(port=0)
-        with open("XelioUpdate-token.json", "w+") as token:
-            token.write(credentials.to_json())
     
+    credentials = get_google_credentials()
+
     c.execute('SELECT * from [XELIOupdate]')
     data = c.fetchall()
     #print(data)
