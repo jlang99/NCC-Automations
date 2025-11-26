@@ -183,7 +183,7 @@ def process_file(file_path):
                                 numeric_column = pd.to_numeric(dfnew[column], errors='coerce') #Sets to a number, correcting negative values
                                 cbavg = numeric_column.mean(skipna=True)
                                 if np.isnan(cbavg):
-                                    cbavg = "No Comms or Device Offline, for a Month"  
+                                    cbavg = "No Comms or Device Offline, for a Week"  
 
                                 if cb_list == violet18strs:
                                     strings = 18
@@ -201,15 +201,22 @@ def process_file(file_path):
                     results = []
                     if len(list_avgs) > 1:
                         new_list = [nameavg[1] for nameavg in list_avgs]
-                        filtered_list = [cb for cb in new_list if cb != "No Comms or Device Offline, for a Month"]
+                        filtered_list = [cb for cb in new_list if cb != "No Comms or Device Offline, for a Week"]
                         siteMean = pd.Series(filtered_list).mean()
-                        comparison_value = siteMean * 0.90
+                        comparison_value = siteMean * 0.90 if siteMean > 0 else 0
+
                         for cb in list_avgs:
-                            if cb[1] == "No Comms or Device Offline, for a Month":
+                            if cb[1] == "No Comms or Device Offline, for a Week":
                                 results.append([cb[0], cb[1], key])
-                            elif cb[1] < comparison_value:  # Check if the value is less than 5% of siteMean
-                                ratio = round((cb[1]/siteMean) * 100, 1)
-                                results.append([cb[0], f"Average Performance: {round(cb[1], 2)} KWH  {ratio}% of the Average", key + f" Average KWH: {round(siteMean, 2)}", ratio])        
+                            # If siteMean is 0, we should flag any device that is also at 0.
+                            # The condition cb[1] <= comparison_value handles this, as 0 <= 0 is true.
+                            elif cb[1] <= comparison_value:
+                                ratio = round((cb[1]/siteMean) * 100, 1) if siteMean > 0 else 0
+                                if siteMean != 0:
+                                    log_phrase = f"Average Performance: {round(cb[1], 2)} KWH  {ratio}% of the Average"
+                                else:
+                                    log_phrase = f"All devices in this group are reporting 0 KWH."
+                                results.append([cb[0], log_phrase, key + f" Average KWH: {round(siteMean, 2)}", ratio])      
                         if results:
                             if results[0]:
                                 ic(results)
@@ -217,12 +224,12 @@ def process_file(file_path):
                                 write_results(sheet_name, results)
                     else:
                         ic("I am Unique", key, list_avgs[0][0], list_avgs[0][1])
-                        if list_avgs[0][1] == "No Comms or Device Offline, for a Month":
+                        if list_avgs[0][1] == "No Comms or Device Offline, for a Week":
                             results.append([list_avgs[0][0], list_avgs[0][1], key])
                         elif list_avgs[0][1]:
                             kwh = round(list_avgs[0][1], 1)
                             ratio = round((kwh/3) * 100, 1)
-                            results.append([list_avgs[0][0], f"Last Month's Average KWH: {kwh} No other CB's with this # of Strings", key, ratio])
+                            results.append([list_avgs[0][0], f"Last Week's Average KWH: {kwh} No other CB's with this # of Strings", key, ratio])
                         if results:
                             if results[0]:
                                 ic(results)
@@ -254,7 +261,7 @@ def process_file(file_path):
                                 numeric_column = pd.to_numeric(dfnew[column], errors='coerce') #Sets to a number, correcting negative values
                                 cbavg = numeric_column.mean(skipna=True)
                                 if np.isnan(cbavg):
-                                    cbavg = "No Comms or Device Offline, for a Month"  
+                                    cbavg = "No Comms or Device Offline, for a Week"  
 
                                 if cb_list == conetoe_20strs:
                                     ic(column)
@@ -267,16 +274,21 @@ def process_file(file_path):
                     results = []
                     if len(list_avgs) > 1:
                         new_list = [nameavg[1] for nameavg in list_avgs]
-                        filtered_list = [cb for cb in new_list if cb != "No Comms or Device Offline, for a Month"]
+                        filtered_list = [cb for cb in new_list if cb != "No Comms or Device Offline, for a Week"]
                         ic(new_list, filtered_list)
                         siteMean = pd.Series(filtered_list).mean()
-                        comparison_value = siteMean * 0.90
+                        comparison_value = siteMean * 0.90 if siteMean > 0 else 0.1
+
                         for cb in list_avgs:
-                            if cb[1] == "No Comms or Device Offline, for a Month":
+                            if cb[1] == "No Comms or Device Offline, for a Week":
                                 results.append([cb[0], cb[1], key])
-                            elif cb[1] < comparison_value:  # Check if the value is less than 5% of siteMean
-                                ratio = round((cb[1]/siteMean) * 100, 1)
-                                results.append([cb[0], f"Average Performance: {round(cb[1], 2)} KWH  {ratio}% of the Average", key + f" Average KWH: {round(siteMean, 2)}", ratio])        
+                            elif cb[1] <= comparison_value:  # Check if the value is less than 5% of siteMean
+                                ratio = round((cb[1]/siteMean) * 100, 1) if siteMean > 0 else 0
+                                if siteMean != 0:
+                                    log_phrase = f"Average Performance: {round(cb[1], 2)} KWH  {ratio}% of the Average"
+                                else:
+                                    log_phrase = f"All devices in this group are reporting 0 KWH."
+                                results.append([cb[0], log_phrase, key + f" Average KWH: {round(siteMean, 2)}", ratio])    
                         if results:
                             if results[0]:
                                 ic(results)
@@ -284,11 +296,11 @@ def process_file(file_path):
                                 write_results(sheet_name, results)
                     else:
                         ic("I am Unique", key, list_avgs[0][0], list_avgs[0][1])
-                        if list_avgs[0][1] == "No Comms or Device Offline, for a Month":
+                        if list_avgs[0][1] == "No Comms or Device Offline, for a Week":
                             results.append([list_avgs[0][0], list_avgs[0][1], key])
                         elif list_avgs[0][1]:
                             kwh = round(list_avgs[0][1], 1)
-                            results.append([list_avgs[0][0], f"Last Month's Average KWH: {kwh} No other CB's with this # of Strings", key])
+                            results.append([list_avgs[0][0], f"Last Week's Average KWH: {kwh} No other CB's with this # of Strings", key])
                         if results:
                             if results[0]:
                                 ic(results)
@@ -332,7 +344,7 @@ def process_file(file_path):
                                 numeric_column = pd.to_numeric(dfnew[column], errors='coerce') #Sets to a number, correcting negative values
                                 cbavg = numeric_column.mean(skipna=True)
                                 if np.isnan(cbavg):
-                                    cbavg = "No Comms or Device Offline, for a Month"  
+                                    cbavg = "No Comms or Device Offline, for a Week"  
 
                                 if cb_list == hickory_20strs:
                                     strings = 20
@@ -356,15 +368,20 @@ def process_file(file_path):
                     results = []
                     if len(list_avgs) > 1:
                         new_list = [nameavg[1] for nameavg in list_avgs]
-                        filtered_list = [cb for cb in new_list if cb != "No Comms or Device Offline, for a Month"]
+                        filtered_list = [cb for cb in new_list if cb != "No Comms or Device Offline, for a Week"]
                         siteMean = pd.Series(filtered_list).mean()
-                        comparison_value = siteMean * 0.90
+                        comparison_value = siteMean * 0.90 if siteMean > 0 else 0.1
+
                         for cb in list_avgs:
-                            if cb[1] == "No Comms or Device Offline, for a Month":
+                            if cb[1] == "No Comms or Device Offline, for a Week":
                                 results.append([cb[0], cb[1], key])
-                            elif cb[1] < comparison_value:  # Check if the value is less than 5% of siteMean
-                                ratio = round((cb[1]/siteMean) * 100, 1)
-                                results.append([cb[0], f"Average Performance: {round(cb[1], 2)} KWH.  {ratio}% of the Average", key + f" Average KWH: {round(siteMean, 2)}", ratio])        
+                            elif cb[1] <= comparison_value:  # Check if the value is less than 5% of siteMean
+                                ratio = round((cb[1]/siteMean) * 100, 1) if siteMean > 0 else 0
+                                if siteMean != 0:
+                                    log_phrase = f"Average Performance: {round(cb[1], 2)} KWH  {ratio}% of the Average"
+                                else:
+                                    log_phrase = f"All devices in this group are reporting 0 KWH."
+                                results.append([cb[0], log_phrase, key + f" Average KWH: {round(siteMean, 2)}", ratio])
                         if results:
                             if results[0]:
                                 ic(results)
@@ -372,12 +389,12 @@ def process_file(file_path):
                                 write_results(sheet_name, results)
                     else:
                         ic("I am Unique", key, list_avgs[0][0], list_avgs[0][1])
-                        if list_avgs[0][1] == "No Comms or Device Offline, for a Month":
+                        if list_avgs[0][1] == "No Comms or Device Offline, for a Week":
                             results.append([list_avgs[0][0], list_avgs[0][1], key])
                         elif list_avgs[0][1]:
                             kwh = round(list_avgs[0][1], 1)
                             ratio = round((kwh/3) * 100, 1)
-                            results.append([list_avgs[0][0], f"Last Month's Average KWH: {kwh} No other CB's with this # of Strings", key, ratio])
+                            results.append([list_avgs[0][0], f"Last Week's Average KWH: {kwh} No other CB's with this # of Strings", key, ratio])
                         if results:
                             if results[0]:
                                 ic(results)
@@ -413,7 +430,7 @@ def process_file(file_path):
                                 numeric_column = pd.to_numeric(dfnew[column], errors='coerce') #Sets to a number, correcting negative values
                                 cbavg = numeric_column.mean(skipna=True)
                                 if np.isnan(cbavg):
-                                    cbavg = "No Comms or Device Offline, for a Month"  
+                                    cbavg = "No Comms or Device Offline, for a Week"  
 
                                 if cb_list == wellons_20strs:
                                     strings = 20
@@ -429,15 +446,23 @@ def process_file(file_path):
                     results = []
                     if len(list_avgs) > 1:
                         new_list = [nameavg[1] for nameavg in list_avgs]
-                        filtered_list = [cb for cb in new_list if cb != "No Comms or Device Offline, for a Month"]
+                        filtered_list = [cb for cb in new_list if cb != "No Comms or Device Offline, for a Week"]
                         siteMean = pd.Series(filtered_list).mean()
-                        comparison_value = siteMean * 0.90
+                        # If siteMean is 0, any non-zero value is fine, but 0 is an underperformer if it should be producing.
+                        # We set a very small positive threshold to catch the zero-performers when the mean is also zero.
+                        comparison_value = siteMean * 0.90 if siteMean > 0 else 0.1
+
                         for cb in list_avgs:
-                            if cb[1] == "No Comms or Device Offline, for a Month":
+                            if cb[1] == "No Comms or Device Offline, for a Week":
                                 results.append([cb[0], cb[1], key])
-                            elif cb[1] < comparison_value:  # Check if the value is less than 5% of siteMean
-                                ratio = round((cb[1]/siteMean) * 100, 1)
-                                results.append([cb[0], f"Average Performance: {round(cb[1], 2)} KWH  {ratio}% of the Average", key + f" Average KWH: {round(siteMean, 2)}", ratio])        
+                            # If the site mean is 0, we check for values that are 0 or less.
+                            elif cb[1] <= 0 or cb[1] < comparison_value:
+                                ratio = round((cb[1]/siteMean) * 100, 1) if siteMean > 0 else 0
+                                if siteMean != 0:
+                                    log_phrase = f"Average Performance: {round(cb[1], 2)} KWH  {ratio}% of the Average"
+                                else:
+                                    log_phrase = f"All devices in this group are reporting 0 KWH."
+                                results.append([cb[0], log_phrase, key + f" Average KWH: {round(siteMean, 2)}", ratio])     
                         if results:
                             if results[0]:
                                 ic(results)
@@ -445,18 +470,17 @@ def process_file(file_path):
                                 write_results(sheet_name, results)
                     else:
                         ic("I am Unique", key, list_avgs[0][0], list_avgs[0][1])
-                        if list_avgs[0][1] == "No Comms or Device Offline, for a Month":
+                        if list_avgs[0][1] == "No Comms or Device Offline, for a Week":
                             results.append([list_avgs[0][0], list_avgs[0][1], key])
                         elif list_avgs[0][1]:
                             kwh = round(list_avgs[0][1], 1)
                             ratio = round((kwh/3) * 100, 1)
-                            results.append([list_avgs[0][0], f"Last Month's Average KWH: {kwh} No other CB's with this # of Strings", key, ratio])
+                            results.append([list_avgs[0][0], f"Last Week's Average KWH: {kwh} No other CB's with this # of Strings", key, ratio])
                         if results:
                             if results[0]:
                                 ic(results)
                                 time.sleep(2.5)
                                 write_results(sheet_name, results)
-
         elif sheet_name == "Cherry Blossom Solar, LLC":
             dfnew = pd.read_excel(file_path, sheet_name=sheet_name, skiprows=2)
             dfnew = dfnew.iloc[1:] #Clear the first row from Data frame as it holds the Units for the Column
@@ -467,37 +491,46 @@ def process_file(file_path):
                           (dfnew.iloc[:, 0].dt.time <= pd.to_datetime('05:00 PM').time())]
             cbAVGS = {}
             strings = r'ST(\d+)'
+            print("Processing Cherry Blossom Solar, LLC")
             for column in dfnew.columns[1:]:# Iterate through each column except the first one
-                matchl = re.match(strings, column)
-                #ic(matchl, column)
+                matchl = re.search(strings, column)
+                ic(matchl, column)
                 if matchl:
                     identifier = matchl.group(1)
                     if identifier not in cbAVGS:
-                        cbAVGS[f'{sheet_name} {identifier}'] = []
+                        cbAVGS[f'{sheet_name} {identifier}'] = [] # Creating String Groups
             for column in dfnew.columns[1:]:# Iterate through each column except the first one
-                match = re.match(strings, column)
+                match = re.search(strings, column)
                 numeric_column = pd.to_numeric(dfnew[column], errors='coerce') #Sets to a number, correcting negative values
                 cbavg = numeric_column.mean(skipna=True) 
                 if np.isnan(cbavg):
-                    cbavg = "No Comms or Device Offline, for a Month"  
-                #ic(match, column)
+                    cbavg = "No Comms or Device Offline, for a Week"  
                 if match:
                     identifier = match.group(1)
                     cbAVGS[f'{sheet_name} {identifier}'].append([column, cbavg])
             for key, list_avgs in cbAVGS.items():
+                print("Evaluating CB String Group:", key)
+                print("List of Averages:", list_avgs)
                 if list_avgs:
                     results = []
                     if len(list_avgs) > 1:
                         new_list = [nameavg[1] for nameavg in list_avgs]
-                        filtered_list = [cb for cb in new_list if cb != "No Comms or Device Offline, for a Month"]
+                        filtered_list = [cb for cb in new_list if cb != "No Comms or Device Offline, for a Week"]
                         siteMean = pd.Series(filtered_list).mean()
-                        comparison_value = siteMean * 0.90
+                        comparison_value = siteMean * 0.90 if siteMean > 0 else 0
                         for cb in list_avgs:
-                            if cb[1] == "No Comms or Device Offline, for a Month":
+                            if cb[1] == "No Comms or Device Offline, for a Week":
                                 results.append([cb[0], cb[1], key])
-                            elif cb[1] < comparison_value:  # Check if the value is less than 5% of siteMean
-                                ratio = round((cb[1]/siteMean) * 100, 1)
-                                results.append([cb[0], f"Average Performance: {round(cb[1], 2)} KWH  {ratio}% of the Average", key + f" Average KWH: {round(siteMean, 2)}", ratio])        
+                            # If siteMean is 0, we should flag any device that is also at 0.
+                            # The condition cb[1] <= comparison_value handles this, as 0 <= 0 is true.
+                            elif cb[1] <= comparison_value:
+                                ratio = round((cb[1]/siteMean) * 100, 1) if siteMean > 0 else 0
+                                if siteMean != 0:
+                                    log_phrase = f"Average Performance: {round(cb[1], 2)} KWH  {ratio}% of the Average"
+                                else:
+                                    log_phrase = f"All devices in this group are reporting 0 KWH."
+                                results.append([cb[0], log_phrase, key + f" Average KWH: {round(siteMean, 2)}", ratio])
+                        print("Results: Cherry Blossom", results)
                         if results:
                             if results[0]:
                                 ic(results)
@@ -505,12 +538,12 @@ def process_file(file_path):
                                 write_results(sheet_name, results)
                     else:
                         ic("I am Unique", key, list_avgs[0][0], list_avgs[0][1])
-                        if list_avgs[0][1] == "No Comms or Device Offline, for a Month":
+                        if list_avgs[0][1] == "No Comms or Device Offline, for a Week":
                             results.append([list_avgs[0][0], list_avgs[0][1], key])
                         elif list_avgs[0][1]:
                             kwh = round(list_avgs[0][1], 1)
                             ratio = round((kwh/3) * 100, 1)
-                            results.append([list_avgs[0][0], f"Last Month's Average KWH: {kwh} No other CB's with this # of Strings", key, ratio])
+                            results.append([list_avgs[0][0], f"Last Week's Average KWH: {kwh} No other CB's with this # of Strings", key, ratio])
                         if results:
                             if results[0]:
                                 ic(results)

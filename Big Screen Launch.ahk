@@ -1,7 +1,7 @@
 ﻿#Requires AutoHotkey v2.0
 ^z::ExitApp
 
-Result := MsgBox("Turn On the TV's and Wait for the image to populate on all 8 screens, then press Ok and relenquish the Mouse", "Launch Monitoring Sites for Big Screen", "1")
+Result := MsgBox("Wait for atleast 1 Data pull to be successful before clicking ok. Should be the only terminal running and should be communicating `n Pulled Data: Site     | Time Taken: Seconds", "Launch Monitoring Sites for Big Screen", "1")
 if Result = "Ok"{
 
 ;Lily SCADA
@@ -17,36 +17,33 @@ Sleep 5000
 
 Run "G:\Shared drives\O&M\NCC Automations\Notification System\#AE API GUI SQL.pyw"
 if WinWait("Timestamps", , 10) {
-    WinMove(3297, 785, 284, 327, "NCC Desk Functions")
-    WinMove(3624, 477, 429, 314, "Timestamps")
-    WinMove(3625, 785, 236, 301, "Alert Windows Info")
-    WinMove(2156, 729, , , "Personnel On-Site")
-   
-    WinMove(2371, "-370", , , "Site Data")
-    WinMove(6668, 195, , , "Soltage")
-    WinMove(5385, 728, , , "NCEMC")
-    WinMove(3000, 24, , , "NARENCO")
-
-    WinMove(4162, "-372", , , "SOL River")
-
-    WinMove(5172, 8, , , "SOL River Continued")
-
+    WinMove(3790, 300, , , "NCC Desk Functions")
+    WinMove(3074, 300, , , "Timestamps")
+    WinMove(3363, 300, , , "Alert Windows Info")
+    WinMove(3119, 618, , , "Personnel On-Site")
+    WinMove(2198, "-429", , , "Site Data")
+    WinMove(2999, "-422", , , "Soltage")
+    WinMove(3556, "-429", , , "NCEMC")
+    WinMove(4117, "-371", , , "NARENCO")
+    WinMove(5172, 8, , , "Sol River's Portfolio")
     WinMove(6259, 26, , , "Harrison Street")
 
    Sleep 1000
 
 
 Sleep 1000
-if WinExist("NCC Wind Monitor") 
+if WinExist("NCC Weather App") 
 { 
-WinActivate("NCC Wind Monitor")
+WinActivate("NCC Weather App")
 WinMaximize()
 }
-else { WinActivate("NCC Wind Monitor (Not Responding)")
+else { WinActivate("NCC Weather App")
+WinMaximize()
 }
 
+
 ;Lily Move
-WinMove(4350, 767, , , "Notified Events")
+WinMove(2398, 746, , , "Notified events")
 
 CoordMode "Mouse", "Screen"
 MouseMove 950, 550

@@ -4,42 +4,43 @@ AHKMenu.Add("&Open AE API GUI", AEAPIGUI)
 AHKMenu.Add("&Close GUI", Close)
 AHKMenu.Add("&Postion Time && AE API", Move)
 AHKMenu.Add("&Lily SCADA", OpenLily)
-AHKMenu.Add("Open &DB", OpenDB)
 AHKMenu.Add("Data Pull Script", DataPull)
 AHKMenu.Add("Email Notification (Breaker Only)", BreakerNoti)
-AHKMenu.Add("Email Notification (Not Working/Don't Use)", EmailNoti)
 AHKMenu.Add("Daily Email App", DailyEmail)
-AHKMenu.Add("Wind Monitoring App", WindApp)
+AHKMenu.Add("NCC Weather App", WindApp)
+AHKMenu.Add("WO Input/Customer Notification Tool", WOTool)
 
 
 
 
 
 
-
-WOGUI := Gui()
-WOGUI.Add("Text", "xm ym", "Work In Progress (Fucntion Not Available)")
-WOGUI.Add("Text", "xm y+5", "Select the Type of WO/Outage")
-WOGUI.AddDropDownList("Choose1 vErrorType", ["Site Trip", "Utility Trip", "Inverter Offline", "Site Stow", "Inverter Performance", "Inverter Comms"])
-WOGUI.Add("Text", "xm y+5", "Select Assign To")
-WOGUI.AddDropDownList("Choose1 Sort vAssigned", ["Brandon","Newman", "Joseph", "Jacob", "Thorne", "Jon", "Isaac", "Parker", "Tom", "Zack"])
-WOGUI.Add("Text", "xm y+5", "Select Site")
-WOGUI.AddDropDownList("Choose1 Sort vLocation", ['Bluebird', 'Cardinal', 'Cherry Blossom', 'Cougar', 'Harrison', 'Hayes', 'Hickory', 'Violet', 'Hickson',
-                    'Jefferson', 'Marshall', 'Ogburn', 'Tedder', 'Thunderhead', 'Van Buren', 'Bulloch 1A', 'Bulloch 1B', 'Elk', 'Duplin',
-                    'Harding', 'Mclean', 'Richmond Cadle', 'Shorthorn', 'Sunflower', 'Upson', 'Warbler', 'Washington', 'Whitehall', 'Whitetail',
-                    'Conetoe', 'Wayne I', 'Wayne II', 'Wayne III', 'Freight Line', 'Holly Swamp', 'PG', 'Bishopville II', 'Gray Fox', 'Wellons'])
-WOGUI.Add("Text", "xm y+5", "Select User")
-WOGUI.AddDropDownList("Choose2 Sort vUser", ["NARENCO", "Joseph", "Jacob"])
-
-SubmitBtn := WOGUI.AddButton("Default w80", "CreateWO")
-SubmitBtn.OnEvent("Click", CreateWO)
-
+;WOGUI := Gui()
+;WOGUI.Add("Text", "xm ym", "Work In Progress (Fucntion Not Available)")
+;WOGUI.Add("Text", "xm y+5", "Select the Type of WO/Outage")
+;WOGUI.AddDropDownList("Choose1 vErrorType", ["Site Trip", "Utility Trip", "Inverter Offline", "Site Stow", "Inverter Performance", "Inverter Comms"])
+;WOGUI.Add("Text", "xm y+5", "Select Assign To")
+;WOGUI.AddDropDownList("Choose1 Sort vAssigned", ["Brandon","Newman", "Joseph", "Jacob", "Thorne", "Jon", "Isaac", "Parker", "Tom", "Zack"])
+;WOGUI.Add("Text", "xm y+5", "Select Site")
+;WOGUI.AddDropDownList("Choose1 Sort vLocation", ['Bluebird', 'Cardinal', 'Cherry Blossom', 'Cougar', 'Harrison', 'Hayes', 'Hickory', 'Violet', 'Hickson',
+;                    'Jefferson', 'Marshall', 'Ogburn', 'Tedder', 'Thunderhead', 'Van Buren', 'Bulloch 1A', 'Bulloch 1B', 'Elk', 'Duplin',
+;                    'Harding', 'Mclean', 'Richmond Cadle', 'Shorthorn', 'Sunflower', 'Upson', 'Warbler', 'Washington', 'Whitehall', 'Whitetail',
+;                    'Conetoe', 'Wayne I', 'Wayne II', 'Wayne III', 'Freight Line', 'Holly Swamp', 'PG', 'Bishopville II', 'Gray Fox', 'Wellons'])
+;WOGUI.Add("Text", "xm y+5", "Select User")
+;WOGUI.AddDropDownList("Choose2 Sort vUser", ["NARENCO", "Joseph", "Jacob"])
+;
+;SubmitBtn := WOGUI.AddButton("Default w80", "CreateWO")
+;SubmitBtn.OnEvent("Click", CreateWO)
 
 
 
 
 
 
+WOTool(Item, *)
+{
+   Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\WO Logbook Tool.py"
+}
 
 WindApp(Item, *)
 {
@@ -64,18 +65,12 @@ AEAPIGUI(Item, *)
 {
 Run "G:\Shared drives\O&M\NCC Automations\Notification System\#AE API GUI SQL.pyw"
 }
-OpenDB(Item, *)
-{
-   Run "C:\Users\OMOPS\OneDrive - Narenco\Documents\AE API DB.accdb"
-}
+
 DataPull(Item, *)
 {
    Run "G:\Shared drives\O&M\NCC Automations\Notification System\API Data Pull, Multi SQL.py"
 }
-EmailNoti(Item, *)
-{
-   Run "G:\Shared drives\O&M\NCC Automations\Notification System\Email Notification (Breaker & Inverters).py"
-}
+
 BreakerNoti(Item, *)
 {
    Run "G:\Shared drives\O&M\NCC Automations\Notification System\Email Notification (Breaker).py"
@@ -87,7 +82,7 @@ DailyEmail(Item, *)
 Close(Item, *)
 {
    WinClose "Alert Windows Info"
-   WinClose "SOL River"
+   WinClose "Sol River's Portfolio"
    WinClose "Harrison Street"
    WinClose "NARENCO"
    WinClose "NCEMC"
@@ -99,23 +94,18 @@ Close(Item, *)
 
 Move(Item, *)
 {
-    WinMove(3297, 785, 284, 327, "NCC Desk Functions")
-    WinMove(3624, 477, 429, 314, "Timestamps")
-    WinMove(3625, 785, 459, 301, "Alert Windows Info")
-    WinMove(2156, 729, , , "Personnel On-Site")
-    WinMove(2371, "-370", , , "Site Data")
-    WinMove(6668, 195, , , "Soltage")
-    WinMove(5385, 728, , , "NCEMC")
-    WinMove(3000, 24, , , "NARENCO")
-
-    WinMove("4117", "-372", , , "SOL River")
-
-    WinMove(5172, 8, , , "SOL River Continued")
-
+    WinMove(3790, 300, , , "NCC Desk Functions")
+    WinMove(3074, 300, , , "Timestamps")
+    WinMove(3363, 300, , , "Alert Windows Info")
+    WinMove(3119, 618, , , "Personnel On-Site")
+    WinMove(2198, "-429", , , "Site Data")
+    WinMove(2999, "-429", , , "Soltage")
+    WinMove(3556, "-429", , , "NCEMC")
+    WinMove(4117, "-371", , , "NARENCO")
+    WinMove(5172, 8, , , "Sol River's Portfolio")
     WinMove(6259, 26, , , "Harrison Street")
-
     
-WinMove(4350, 767, , , "Notified events")
+WinMove(2398, 746, , , "Notified events")
 
 }
 
@@ -219,10 +209,16 @@ MsgBox("Check for Proper Initials at Summary of Issue:'nInput Proper Start Date 
 
 
 
-WOGUI.Show
+;WOGUI.Show
 
 ;HOTKEYS
 ^!z::AHKMenu.Show
+
+^#r::{
+Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\restart.pyw"
+}
+
+
 
 ;FUNCITON KEY REASSIGNMENT
 f1::{
@@ -241,3 +237,4 @@ f3::{
    MouseMove 165, 1050
    Click 165, 1050
 }
+F8::AHKMenu.Show
