@@ -38,8 +38,8 @@ customer_report_items = [('Harrison St.', hst_customer_data, False), ('NARENCO',
 def dbcnxn():
     global db, connect_db, c
     #Connect to DB
-    realdb = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb;'
-    db = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039 - Copy.accdb'
+    realdb = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\O&M\NCC\NCC 039.accdb;'
+    db = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\O&M\NCC\NCC 039 - Testing.accdb'
     if testingvar.get():
         connect_db = pyodbc.connect(db)
     else:    
@@ -62,7 +62,7 @@ def browse_files():
 
 #Shift SUMMARY Functions
 def shift_Summary():
-    db = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb;'
+    db = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\O&M\NCC\NCC 039.accdb;'
     connect_dbn = pyodbc.connect(db)
     c = connect_dbn.cursor()
 

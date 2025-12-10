@@ -1,7 +1,7 @@
 ﻿#Requires AutoHotkey v2.0
 ^z::ExitApp
 
-Result := MsgBox("Wait for atleast 1 Data pull to be successful before clicking ok. Should be the only terminal running and should be communicating `n Pulled Data: Site     | Time Taken: Seconds", "Launch Monitoring Sites for Big Screen", "1")
+Result := MsgBox("Click ok to launch all monitoring software", "Launch Monitoring Sites for Big Screen", "1")
 if Result = "Ok"{
 
 ;Lily SCADA

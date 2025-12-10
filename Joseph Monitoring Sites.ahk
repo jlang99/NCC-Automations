@@ -36,7 +36,7 @@ LilyCBMenu.Add("INV 28 Table", CB28)
 
 
 AHKMenu := Menu()
-AHKMenu.Add("OMOPS Websites && Lily Scada", OMOPSsites)
+AHKMenu.Add("OMOPS Websites", OMOPSsites)
 AHKMenu.Add("Joseph's Sites", JosephSites)
 AHKMenu.Add("Lily On-Site Personnel Update", LilyPersonnelUpdate)
 AHKMenu.Add("Lily Events", LilyExcelTable)
@@ -46,6 +46,7 @@ AHKMenu.Add("Open Logbook", Logbook)
 AHKMenu.Add("Tracker Check", Tracker)
 AHKMenu.Add("CB Check", CBCheck)
 AHKMenu.Add("Performance Check", PerformanceCheck)
+AHKMenu.Add("Weekly Report Update", WeeklyReport)
 AHKMenu.Add("WO Input Doc", WOInput)
 AHKMenu.Add("NCC WO's Input && Notify && Shift Summary", WOInputTask)
 AHKMenu.Add("Email Technicians Tracker Data", TrackertoTech)
@@ -150,7 +151,7 @@ Send("{Enter}")
 }
 
 ^#v::{
-    WinActivate("Access - NCC 039 : Database- G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb (Access 2007 - 2016 file format)")
+    WinActivate("Access - NCC 039 : Database- G:\Shared drives\O&M\NCC\NCC 039.accdb (Access 2007 - 2016 file format)")
     CoordMode "Mouse", "Window"
     Sleep 200
     Click 251, 561
@@ -170,7 +171,7 @@ Click 195, 99
 Sleep 250
 Click
 Sleep 250
-WinActivate("Access - NCC 039 : Database- G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb (Access 2007 - 2016 file format)")
+WinActivate("Access - NCC 039 : Database- G:\Shared drives\O&M\NCC\NCC 039.accdb (Access 2007 - 2016 file format)")
 Click 1113, 531
 Sleep 200
 Click 1116, 771
@@ -299,10 +300,10 @@ f8::{
 
         Sleep 1000
 
-        Run "G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb"
+        Run "G:\Shared drives\O&M\NCC\NCC 039.accdb"
         Sleep 5000
         CoordMode "Mouse", "Window"
-        WinActivate "Access - NCC 039 : Database- G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb (Access 2007 - 2016 file format)"
+        WinActivate "Access - NCC 039 : Database- G:\Shared drives\O&M\NCC\NCC 039.accdb (Access 2007 - 2016 file format)"
         Click 1852, 17
         Sleep 100
         Click 1359, 17
@@ -310,7 +311,7 @@ f8::{
 
         Sleep 1000
 
-        Run "G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\ForecastReport 005.xlsm"
+        Run "G:\Shared drives\O&M\NCC\ForecastReport 005.xlsm"
         WinWait('ForecastReport 005.xlsm - Excel', , 10)
         Sleep 8000
         WinActivate("ForecastReport 005.xlsm - Excel")
@@ -352,11 +353,11 @@ Tracker(Item, *)
 }
 Logbook(Item, *)
 {
-    Run "G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb"
+    Run "G:\Shared drives\O&M\NCC\NCC 039.accdb"
 }
 Forecast(Item, *)
 {
-    Run "G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\ForecastReport 005.xlsm"
+    Run "G:\Shared drives\O&M\NCC\ForecastReport 005.xlsm"
     WinWait('ForecastReport 005.xlsm - Excel', , 10)
     Sleep 4000
     CoordMode "Mouse", "Window"
@@ -3537,23 +3538,6 @@ If(A_DDDD = "Tuesday" or A_DDDD = "Wednesday" or A_DDDD = "Thursday" or A_DDDD =
 Run "https://docs.google.com/spreadsheets/d/1Uq8LSya5w6xiAbFhqeCa1upT2Zs-ueQmYFP6cxNkOkI/edit#gid=0"
 Sleep 200
 Run "https://keep.google.com/#label/1.%20Handover"
-
-
-
-Sleep 10000
-BlockInput 1
-;Lily Scada
-#Warn All, Off
-Lily := "C:\AppletScada\AppletScada_x4.jar 12.42.18.10:22000 user:AmandaSmith password:72938 multipleinstance"
-Run Lily
-CoordMode "Mouse", "Window"
-WinWait("US LIL ZONE - PowerStudio Scada", , 15)
-Winactivate("US LIL ZONE - PowerStudio Scada")
-Click 1880, 11
-Sleep 1000
-Click 594, 16
-WinMinimize("Notified events")
-BlockInput 0
 }
 
 JosephSites(Item, *)
@@ -3582,4 +3566,8 @@ Run "https://academy.viewpoint.com/learn/signin"
 LilyPersonnelUpdate(Item, *)
 {
     Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\Lily Personnel Update.py"
+}
+WeeklyReport(Item, *)
+{
+    Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\Weekly Updates.py"
 }

@@ -212,7 +212,7 @@ MsgBox("Check for Proper Initials at Summary of Issue:'nInput Proper Start Date 
 ;WOGUI.Show
 
 ;HOTKEYS
-^!z::AHKMenu.Show
+^+z::AHKMenu.Show
 
 ^#r::{
 Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\restart.pyw"

@@ -1,8 +1,10 @@
 import ctypes
 import time
+from datetime import timedelta
 import pandas as pd
 import sys, os
 import re
+import numpy as np
 import tkinter as tk
 from tkinter import filedialog
 
@@ -356,37 +358,61 @@ def natural_sort_key(s):
 
 def update_performance_sheet(metrics):
     """Writes the collected metrics to a Google Sheet."""
-    try:
-        service = build('sheets', 'v4', credentials=credentials)
-        for site_name, site_metrics in metrics.items():
-            # Extract and sort inverter ratios using natural sort
-            inverter_keys = []
-            for key, value in site_metrics.items():
-                if key.startswith('inverter_') and key.endswith('_ratio'):
-                    inv_id_str = key.replace('inverter_', '').replace('_ratio', '')
-                    inverter_keys.append((inv_id_str, value))
-            
-            # Sort by inverter ID using the natural sort key
-            inverter_keys.sort(key=lambda x: natural_sort_key(x[0]))
-            ratios = [[value] for _, value in inverter_keys]
-            if ratios:
-                range_end = 1 + len(ratios) # B2 to B(num_inverters + 1)
-                range_to_update = f'{site_name}!B2:B{range_end}'
-                body = {'values': ratios}
-                
-                service.spreadsheets().values().update(
-                    spreadsheetId=performanceSheet,
-                    range=range_to_update,
-                    valueInputOption='USER_ENTERED',
-                    body=body
-                ).execute()
-                print(f"Successfully updated performance ratios for {site_name} in range {range_to_update}.")
-                time.sleep(0.7)  # Pause to avoid hitting API rate limits
-        
-        root.destroy()  # Close the Tkinter root window after processing is completed
+    service = build('sheets', 'v4', credentials=credentials)
 
-    except HttpError as err:
-        print(f"An error occurred while updating the sheet: {err}")
+    for site_name, site_metrics in metrics.items():
+        # Extract and sort inverter ratios using natural sort
+        inverter_keys = []
+        for key, value in site_metrics.items():
+            if key.startswith('inverter_') and key.endswith('_ratio') and '_peak_' not in key:
+                inv_id_str = key.replace('inverter_', '').replace('_ratio', '')
+                inverter_keys.append((inv_id_str, value))
+        
+        # Sort by inverter ID using the natural sort key
+        inverter_keys.sort(key=lambda x: natural_sort_key(x[0]))
+        # Replace NaN with None for JSON compatibility
+        ratios = [[None if isinstance(value, float) and np.isnan(value) else value] for _, value in inverter_keys]
+        #print(f"Prepared performance ratios for {site_name}: {ratios}")
+        if ratios:
+            range_end = 1 + len(ratios) # B2 to B(num_inverters + 1)
+            range_to_update = f'{site_name}!B2:B{range_end}'
+            body = {'values': ratios}
+            
+            service.spreadsheets().values().update(
+                spreadsheetId=performanceSheet,
+                range=range_to_update,
+                valueInputOption='USER_ENTERED',
+                body=body
+            ).execute()
+            print(f"Successfully updated performance ratios for {site_name} in range {range_to_update}.")
+            time.sleep(1)  # Pause to avoid hitting API rate limits
+        # --- Ratios based on AVERAGE (for column C) ---
+        avg_inverter_keys = []
+        for key, value in site_metrics.items():
+            if key.startswith('inverter_') and key.endswith('_peak_ratio'):
+                inv_id_str = key.replace('inverter_', '').replace('_peak_ratio', '')
+                avg_inverter_keys.append((inv_id_str, value))
+        
+        avg_inverter_keys.sort(key=lambda x: natural_sort_key(x[0]))
+        # Replace NaN with None for JSON compatibility
+        avg_ratios = [[None if isinstance(value, float) and np.isnan(value) else value] for _, value in avg_inverter_keys]
+        #print(f"Prepared average performance ratios for {site_name}: {avg_ratios}")
+        if avg_ratios:
+            range_end = 1 + len(avg_ratios)
+            range_to_update = f'{site_name}!C2:C{range_end}'
+            body = {'values': avg_ratios}
+            service.spreadsheets().values().update(
+                spreadsheetId=performanceSheet,
+                range=range_to_update,
+                valueInputOption='USER_ENTERED',
+                body=body
+            ).execute()
+            print(f"Successfully updated average performance ratios for {site_name} in range {range_to_update}.")
+            time.sleep(1)
+    
+    root.destroy()
+
+
 
 
 def find_inverter_num(column_name):
@@ -408,127 +434,244 @@ def find_inverter_num(column_name):
 
 def process_xlsx(file_path):
     """Process the selected Excel file."""
-    try:
-        performance_metrics = {}
-        xls = pd.ExcelFile(file_path)
-        for sheet_name in xls.sheet_names:
-            if sheet_name in {"Sheet 1", "Charlotte Airport", "Wayne 1", "Wayne 2", "Wayne 3"}:
-                continue  # Skip sheets that we can't determine perfomance metircs based on average due to minimal data. Small Inv Groups            
-            clean_sheet_name = sheet_name.replace(" Solar", "").replace(", LLC", "").replace(" Farm", "")
-            dataframe = pd.read_excel(xls, sheet_name=sheet_name, skiprows=2)
-            #print(f"Created DataFrame for sheet: {sheet_name}")
-            
-            # Convert Timestamps to Datetime Objs to run filter on time of day.
-            dataframe.iloc[:, 0] = pd.to_datetime(dataframe.iloc[:, 0], errors='coerce')
+    performance_metrics = {}
+    xls = pd.ExcelFile(file_path)
+    for sheet_name in xls.sheet_names:
+        #print("Loop Start, Sheet Name: ", sheet_name)
 
-            # New filtering logic
-            # Prioritize POA, then GHI, then fall back to time.
-            poa = SITE_DATA.get(clean_sheet_name, {}).get('POA')
-            ghi = SITE_DATA.get(clean_sheet_name, {}).get('GHI')
+        # Skip sheets that are not relevant for performance checks.
+        # Added Wayne sites as they have very few inverters and can skew averages.
+        if sheet_name in {"Sheet 1", "Charlotte Airport", "Wayne 1", "Wayne 2", "Wayne 3"}:
+            continue  # Skip sheets that we can't determine perfomance metircs based on average due to minimal data. Small Inv Groups            
+        clean_sheet_name = sheet_name.replace(" Solar", "").replace(", LLC", "").replace(" Farm", "")
+        dataframe = pd.read_excel(xls, sheet_name=sheet_name, skiprows=2)
+        #print(f"Created DataFrame for sheet: {sheet_name}")
+        timestamp_col = dataframe.columns[0]
 
-            # Initialize conditions to False
-            poa_condition = pd.Series([False] * len(dataframe), index=dataframe.index)
-            ghi_condition = pd.Series([False] * len(dataframe), index=dataframe.index)
 
-            if poa and poa in dataframe.columns:
-                poa_condition = pd.to_numeric(dataframe[poa], errors='coerce') >= 200
-            if ghi and ghi in dataframe.columns:
-                ghi_condition = pd.to_numeric(dataframe[ghi], errors='coerce') >= 150
+        # Convert Timestamps to Datetime Objs to run filter on time of day.
+        dataframe[timestamp_col] = pd.to_datetime(dataframe[timestamp_col], errors='coerce')
 
-            time_condition = (dataframe.iloc[:, 0].dt.hour >= 9) & (dataframe.iloc[:, 0].dt.hour <= 15)
+        # New filtering logic
+        # Prioritize POA, then GHI, then fall back to time.
+        poa = SITE_DATA.get(clean_sheet_name, {}).get('POA')
+        ghi = SITE_DATA.get(clean_sheet_name, {}).get('GHI')
 
-            # Apply filters in order of priority
-            # A row is kept if it meets any of these conditions.
-            dataframe = dataframe[
-                poa_condition |
-                (~poa_condition & ghi_condition) |
-                (~(poa_condition | ghi_condition) & time_condition)
-            ]
+        # Initialize conditions to False
+        poa_condition = pd.Series([False] * len(dataframe), index=dataframe.index)
+        ghi_condition = pd.Series([False] * len(dataframe), index=dataframe.index)
 
-            inv_num = SITE_DATA.get(clean_sheet_name, {}).get('inv_num', 0)
-            inverter_sums = {find_inverter_num(col): pd.to_numeric(dataframe[col], errors='coerce').sum() for col in dataframe.columns[1:inv_num+1]}
-            if clean_sheet_name == 'Marshall':
-                print(f"Inverter sums for {clean_sheet_name}: {inverter_sums}")
-            if clean_sheet_name in INVERTER_GROUPS:
-                performance_metrics[clean_sheet_name] = {}
-                for group_name, inverter_numbers_set in INVERTER_GROUPS[clean_sheet_name].items():
-                    group_sums = [inverter_sums.get(str(inv_num), 0) for inv_num in inverter_numbers_set]
-                    max_sum = max(group_sums) if group_sums else 0
-                    performance_metrics[clean_sheet_name][group_name] = max_sum if max_sum else 0
-                    for inv_num in inverter_numbers_set:
-                        inv_sum = inverter_sums.get(str(inv_num), 0)
-                        ratio = (inv_sum / max_sum) if max_sum > 0 else 0
-                        performance_metrics[clean_sheet_name][f"inverter_{inv_num}_ratio"] = ratio
-            elif clean_sheet_name == "Duplin":
-                performance_metrics[clean_sheet_name] = {}
-                central_inverters = {}
-                central_counter = 1
-                string_inverters = {}
-                string_counter = 1
+        if poa and poa in dataframe.columns:
+            poa_condition = pd.to_numeric(dataframe[poa], errors='coerce') >= 200
+        if ghi and ghi in dataframe.columns:
+            ghi_condition = pd.to_numeric(dataframe[ghi], errors='coerce') >= 150
 
-                for col in dataframe.columns[1:]:
-                    inv_sum = pd.to_numeric(dataframe[col], errors='coerce').sum()
-                    if 'central' in col.lower():
-                        central_inverters[central_counter] = inv_sum
-                        #print(f"{col} Counter: {central_counter}, Sum: {inv_sum}")
-                        central_counter += 1
-                    elif 'string' in col.lower():
-                        string_inverters[string_counter] = inv_sum
-                        #print(f"{col} Counter: {string_counter}, Sum: {inv_sum}")
-                        string_counter += 1
+        time_condition = (dataframe[timestamp_col].dt.hour >= 9) & (dataframe[timestamp_col].dt.hour <= 15)
 
-                for group_name, group_data in [("Central Inverters", central_inverters), ("String Inverters", string_inverters)]:
-                    if group_data:
-                        max_sum = max(group_data.values())
-                        performance_metrics[clean_sheet_name][group_name] = max_sum if max_sum else 0
-                        for inv_num, inv_sum in group_data.items():
-                            ratio = (inv_sum / max_sum) if max_sum > 0 else 0
-                            # Adjust inverter number for string inverters to be unique
-                            if group_name == "String Inverters":
-                                inv_num += len(central_inverters)
-                            performance_metrics[clean_sheet_name][f"inverter_{inv_num}_ratio"] = ratio if ratio else 0
-                #print(performance_metrics[clean_sheet_name])
+        # 1. Identify inverter data columns based on SITE_DATA
+        inv_num = SITE_DATA.get(clean_sheet_name, {}).get('inv_num', 0)
+        inverter_data_columns = dataframe.columns[1:inv_num+1]
 
-            elif sheet_name == "Conetoe":
-                performance_metrics[clean_sheet_name] = {}
-                # For Conetoe, sum parts like '1.1', '1.2' into a main inverter '1'
-                main_inverter_sums = {}
-                for inv_part, inv_sum in inverter_sums.items():
-                    if inv_part and '.' in inv_part:
-                        main_inv_num = inv_part.split('.')[0]
-                        if main_inv_num not in main_inverter_sums:
-                            main_inverter_sums[main_inv_num] = 0
-                        main_inverter_sums[main_inv_num] += inv_sum
+        for col in inverter_data_columns:
+            dataframe[col] = pd.to_numeric(dataframe[col], errors='coerce')
 
-                if main_inverter_sums:
-                    # Now calculate ratios based on the summed values of main inverters
-                    all_main_sums = list(main_inverter_sums.values())
-                    max_sum = max(all_main_sums) if all_main_sums else 0
-                    performance_metrics[clean_sheet_name]["All Inverters"] = max_sum
+        # Apply filters in order of priority
+        # A row is kept if it meets any of these conditions.
+        peak_dataframe = dataframe[
+            poa_condition |
+            (~poa_condition & ghi_condition) |
+            (~(poa_condition | ghi_condition) & time_condition)
+        ].copy()
 
-                    for main_inv_num, total_sum in main_inverter_sums.items():
-                        ratio = (total_sum / max_sum) if max_sum > 0 else 0
-                        performance_metrics[clean_sheet_name][f"inverter_{main_inv_num}_ratio"] = ratio
-                #print(performance_metrics[clean_sheet_name])
-                
-            else:
-                # If the site is not in INVERTER_GROUPS and not an exception, treat all inverters as one group.
-                performance_metrics[clean_sheet_name] = {}
-                all_sums = list(inverter_sums.values())
-                max_sum = max(all_sums) if all_sums else 0
-                performance_metrics[clean_sheet_name]["All Inverters"] = max_sum
-                if clean_sheet_name == 'Marshall':
-                    print(f"{clean_sheet_name} - All Inverters max sum: {max_sum}\n{all_sums}")
+        # The dataframe is already filtered for peak production hours.
+        # Now, filter this dataframe to get the last 5 days of data.
+        sum_dataframe = peak_dataframe.copy()
+        max_date = sum_dataframe[timestamp_col].max()
+        #print(f"Max date in sheet '{sheet_name}': {max_date}")
+        last_week_start_date = max_date - timedelta(days=5)
+        #print(f"Last week start date: {last_week_start_date}")
+        
+        # Apply the 5-day filter to the sum_dataframe
+        sum_dataframe = sum_dataframe[sum_dataframe[timestamp_col] >= last_week_start_date]
 
-                for inv_num, inv_sum in inverter_sums.items():
+        #print(sum_dataframe.head())
+        
+        # 2. Check if the remaining columns exist or have data
+        if inverter_data_columns.empty:
+            # This covers the case where the sheet only had the timestamp column and nothing else.
+            print(f"Skipping sheet '{sheet_name}' as no inv data found.")
+            continue
+        # Calculate inverter averages and sums
+
+        # 2. Convert these columns to numeric, coercing errors to NaN
+        # This is crucial for accurate averaging
+
+        # 3. Calculate the row-wise average across ONLY the inverter columns
+        # axis=1 specifies a row-wise operation
+        peak_dataframe['Inverter_Row_Average'] = peak_dataframe[inverter_data_columns].mean(axis=1)
+        # 3. Find the row (index) with the maximum 'Inverter_Row_Average' value
+        max_avg_index = peak_dataframe['Inverter_Row_Average'].idxmax()
+        if pd.isna(max_avg_index) or np.isnan(max_avg_index):
+            print(f"Skipping sheet '{sheet_name}' as no valid inverter data found after filtering.")
+            continue
+        
+        # 4. Select the row corresponding to the time of peak average production
+        # .loc ensures the index is used correctly to get the single row of data
+        max_production_row = peak_dataframe.loc[max_avg_index]
+        
+        # 5. Extract the production values for all inverters from that single row
+        inverter_production_at_peak = max_production_row[inverter_data_columns]
+
+        # 6. Find the maximum production value among the inverters in that specific row
+        max_production_in_row = inverter_production_at_peak.max()
+        inverter_peaks = {
+            find_inverter_num(col): max_production_row[col]
+            for col in inverter_data_columns
+        }
+
+        inverter_sums = {find_inverter_num(col): pd.to_numeric(sum_dataframe[col], errors='coerce').sum() for col in sum_dataframe.columns[1:inv_num+1]}
+        #if clean_sheet_name == 'Marshall':
+            #print(f"Inverter sums for {clean_sheet_name}: {inverter_sums}")
+        if clean_sheet_name in INVERTER_GROUPS:
+            performance_metrics[clean_sheet_name] = {}
+            for group_name, inverter_numbers_set in INVERTER_GROUPS[clean_sheet_name].items():
+                group_sums = [inverter_sums.get(str(inv_num), 0) for inv_num in inverter_numbers_set]
+                max_sum = max(group_sums) if group_sums else 0
+                performance_metrics[clean_sheet_name][group_name] = max_sum if max_sum else 0
+                for inv_num in inverter_numbers_set:
+                    inv_sum = inverter_sums.get(str(inv_num), 0)
                     ratio = (inv_sum / max_sum) if max_sum > 0 else 0
                     performance_metrics[clean_sheet_name][f"inverter_{inv_num}_ratio"] = ratio
+                # --- Peak Ratio Calculation (NEW) ---
+                # Get the peak production for each inverter in the group
+                group_peaks = [inverter_peaks.get(str(inv_num), 0) for inv_num in inverter_numbers_set]
+                max_peak = max(group_peaks) if group_peaks else 0
 
-        
-        update_performance_sheet(performance_metrics)
+                # Store the max peak for the group
+                performance_metrics[clean_sheet_name][f"{group_name}_MaxPeak"] = max_peak
 
-    except Exception as e:
-        print(f"Error processing Excel file '{file_path}': {e}")
+                # Calculate ratio for each inverter in the group based on the group's max peak
+                for inv_num in inverter_numbers_set:
+                    inv_peak = inverter_peaks.get(str(inv_num), 0)
+                    peak_ratio = (inv_peak / max_peak) if max_peak > 0 else 0
+                    performance_metrics[clean_sheet_name][f"inverter_{inv_num}_peak_ratio"] = peak_ratio
+        elif clean_sheet_name == "Duplin":
+            performance_metrics[clean_sheet_name] = {}
+            central_inverters = {}
+            central_inverter_peaks = {}
+            central_counter = 1
+            string_inverters = {}
+            string_inverter_peaks = {}
+            string_counter = 1
+
+            for col in dataframe.columns[1:]:
+                inv_sum = pd.to_numeric(dataframe[col], errors='coerce').sum()
+                inv_peak = max_production_row[col]
+                if 'central' in col.lower():
+                    central_inverters[central_counter] = inv_sum
+                    central_inverter_peaks[central_counter] = inv_peak
+                    #print(f"{col} Counter: {central_counter}, Sum: {inv_sum}")
+                    central_counter += 1
+                elif 'string' in col.lower():
+                    string_inverters[string_counter] = inv_sum
+                    string_inverter_peaks[string_counter] = inv_peak
+                    #print(f"{col} Counter: {string_counter}, Sum: {inv_sum}")
+                    string_counter += 1
+
+            for group_name, group_data in [("Central Inverters", central_inverters), ("String Inverters", string_inverters)]:
+                if group_data:
+                    max_sum = max(group_data.values())
+                    performance_metrics[clean_sheet_name][group_name] = max_sum if max_sum else 0
+                    for inv_num, inv_sum in group_data.items():
+                        ratio = (inv_sum / max_sum) if max_sum > 0 else 0
+                        # Adjust inverter number for string inverters to be unique
+                        if group_name == "String Inverters":
+                            inv_num += len(central_inverters)
+                        performance_metrics[clean_sheet_name][f"inverter_{inv_num}_ratio"] = ratio if ratio else 0
+                # --- Peak Ratio Calculation (NEW) ---
+                group_peaks = central_inverter_peaks if group_name == "Central Inverters" else string_inverter_peaks
+                if group_peaks:
+                    max_peak = max(group_peaks.values()) if group_peaks.values() else 0
+                    performance_metrics[clean_sheet_name][f"{group_name}_MaxPeak"] = max_peak
+
+                    for inv_num, inv_peak in group_peaks.items():
+                        peak_ratio = (inv_peak / max_peak) if max_peak > 0 else 0
+                        # Adjust inverter number for string inverters to be unique
+                        if group_name == "String Inverters":
+                            inv_num += len(central_inverter_peaks)
+                        performance_metrics[clean_sheet_name][f"inverter_{inv_num}_peak_ratio"] = peak_ratio if peak_ratio else 0
+            #print(performance_metrics[clean_sheet_name])
+
+        elif sheet_name == "Conetoe":
+            performance_metrics[clean_sheet_name] = {}
+            # For Conetoe, sum parts like '1.1', '1.2' into a main inverter '1'
+            main_inverter_sums = {}
+            for inv_part, inv_sum in inverter_sums.items():
+                if inv_part and '.' in inv_part:
+                    main_inv_num = inv_part.split('.')[0]
+                    if main_inv_num not in main_inverter_sums:
+                        main_inverter_sums[main_inv_num] = 0
+                    main_inverter_sums[main_inv_num] += inv_sum
+
+            if main_inverter_sums:
+                # Now calculate ratios based on the summed values of main inverters
+                all_main_sums = list(main_inverter_sums.values())
+                max_sum = max(all_main_sums) if all_main_sums else 0
+                performance_metrics[clean_sheet_name]["All Inverters"] = max_sum
+
+                for main_inv_num, total_sum in main_inverter_sums.items():
+                    ratio = (total_sum / max_sum) if max_sum > 0 else 0
+                    performance_metrics[clean_sheet_name][f"inverter_{main_inv_num}_ratio"] = ratio
+            
+            # --- Peak Ratio Calculation (NEW) ---
+            main_inverter_peaks = {}
+            for inv_part, inv_peak in inverter_peaks.items():
+                if inv_part and '.' in inv_part:
+                    main_inv_num = inv_part.split('.')[0]
+                    if main_inv_num not in main_inverter_peaks:
+                        main_inverter_peaks[main_inv_num] = 0
+                    main_inverter_peaks[main_inv_num] += inv_peak # Summing the peak production for parts
+
+            if main_inverter_peaks:
+                all_main_peaks = list(main_inverter_peaks.values())
+                max_peak = max(all_main_peaks) if all_main_peaks else 0
+                performance_metrics[clean_sheet_name]["All Inverters_MaxPeak"] = max_peak
+
+                for main_inv_num, total_peak in main_inverter_peaks.items():
+                    peak_ratio = (total_peak / max_peak) if max_peak > 0 else 0
+                    performance_metrics[clean_sheet_name][f"inverter_{main_inv_num}_peak_ratio"] = peak_ratio
+            #print(performance_metrics[clean_sheet_name])
+        # This block should only run for sites NOT in INVERTER_GROUPS.
+        else:
+            # If the site is not in INVERTER_GROUPS and not an exception, treat all inverters as one group.
+            performance_metrics[clean_sheet_name] = {}
+            all_sums = list(inverter_sums.values())
+            max_sum = max(all_sums) if all_sums else 0
+            performance_metrics[clean_sheet_name]["All Inverters"] = max_sum
+            #if clean_sheet_name == 'Marshall':
+            #    print(f"{clean_sheet_name} - All Inverters max sum: {max_sum}\n{all_sums}")
+
+            for inv_num, inv_sum in inverter_sums.items():
+                ratio = (inv_sum / max_sum) if max_sum > 0 else 0
+                performance_metrics[clean_sheet_name][f"inverter_{inv_num}_ratio"] = ratio
+                #print(f"{clean_sheet_name} - Inverter {inv_num} sum: {inv_sum}, max:{max_sum}, ratio: {ratio}\n {len(list(performance_metrics[clean_sheet_name].items()))}")
+
+            # --- Peak Ratio Calculation (NEW) ---
+            all_peaks = list(inverter_peaks.values())
+            max_peak = max(all_peaks) if all_peaks else 0
+            performance_metrics[clean_sheet_name]["All Inverters_MaxPeak"] = max_peak
+
+            for inv_num, inv_peak in inverter_peaks.items():
+                peak_ratio = (inv_peak / max_peak) if max_peak > 0 else 0
+                performance_metrics[clean_sheet_name][f"inverter_{inv_num}_peak_ratio"] = peak_ratio
+
+
+
+    print("Loop End")
+    #loop completes then calls this 
+    update_performance_sheet(performance_metrics)
+
+
 
 
 
