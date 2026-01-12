@@ -288,6 +288,7 @@ def parse_wo(wos):
         issuelistid = None
         editDate = None
         activity_log_id = None
+        asset = None
         wo_notes = None
         customer_note = None
 
@@ -306,6 +307,7 @@ def parse_wo(wos):
 
         wo = row[2]
         site = row[3]
+        asset = row[6]
         activityid = 3
 
         locationid = None
@@ -454,10 +456,10 @@ def parse_wo(wos):
 
         wo_notes_match = re.search(r'Summary of issue:\s*(.*?)\s*Can we resolve the issue Remotely\?', clean_text, re.DOTALL)
         if wo_notes_match:
-            wo_notes = f'WO {wo}  {wo_notes_match.group(1)}'
+            wo_notes = f'WO {wo} | Assigned to Asset:{asset} | {wo_notes_match.group(1)}'
         else:
-            wo_notes = f'WO {wo}'
-        
+            wo_notes = f'WO {wo} | Assigned to Asset:{asset} | No additional details found in Summary of issue. Please refer to Emaint WO for more information.'
+
         try:
             # Now you can use activity_log_id to insert more data into another table
             # Example: Insert into another table using activity_log_id

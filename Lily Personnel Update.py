@@ -22,7 +22,7 @@ test_sheet_ID = '1Uq8LSya5w6xiAbFhqeCa1upT2Zs-ueQmYFP6cxNkOkI'
 def dbcnxn():
     global db, connect_db, c
     #Connect to DB
-    db = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb;'
+    db = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\O&M\NCC\NCC 039.accdb;'
     connect_db = pyodbc.connect(db)
     c = connect_db.cursor()
 

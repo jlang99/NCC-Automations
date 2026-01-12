@@ -22,7 +22,7 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 JOSEPH_SITES = {"Lily", "Bluebird", "Bulloch 1A", "Bulloch 1B", "CDIA", "Cougar", "Harding", "Harrison", "Holly Swamp", "JEFFERSON", "LongLeaf Pine Solar",
                 "Marshall", "Mclean", "Sunflower", "Thunderhead", "Upson", "Violet", "Wayne II", "Wayne III", "Wellons Farm", "Whitehall", "Whitetail"}
 JACOB_SITES = {"Lily", "Hayes", "Hickory", "BISHOPVILLE", "Cardinal", "Cherry Blossom", "Conetoe 1", "Duplin", "Elk",  "Freight Line", "Gray Fox", 
-               "HICKSON", "OGBURN", "PG Solar", "Richmond Cadle", "Shorthorn", "Tedder", "Van Buren", "Warbler", "Washington", "Wayne I", "Williams"}
+               "HICKSON", "OGBURN", "PG Solar", "Richmond Cadle", "Shorthorn", "Tedder", "Van Buren", "Warbler", "Washington", "Wayne I", "WILLIAMS"}
 
 EXTRA_SITES = {"Charter GM", "Shoe Show", "Omnidian Target", "Pivot Energy"}
 
@@ -34,9 +34,13 @@ def update_google_sheet(service, spreadsheet_id, sheet_name, dataframe=False):
     sheet_metadata = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
     sheets = sheet_metadata.get('sheets', '')
     
-    sheet_exists = any(s['properties']['title'] == sheet_name for s in sheets)
+    sheet_id = None
+    for s in sheets:
+        if s['properties']['title'] == sheet_name:
+            sheet_id = s['properties']['sheetId']
+            break
 
-    if sheet_exists:
+    if sheet_id is not None:
         # Clear existing data
         service.spreadsheets().values().clear(
             spreadsheetId=spreadsheet_id,
@@ -47,21 +51,76 @@ def update_google_sheet(service, spreadsheet_id, sheet_name, dataframe=False):
         # Create new sheet
         requests = [{'addSheet': {'properties': {'title': sheet_name}}}]
         body = {'requests': requests}
-        service.spreadsheets().batchUpdate(
+        response = service.spreadsheets().batchUpdate(
             spreadsheetId=spreadsheet_id,
             body=body
         ).execute()
+        sheet_id = response['replies'][0]['addSheet']['properties']['sheetId']
     if dataframe is not False:
+        dataframe = dataframe.sort_values(by='WO Date', ascending=False)
         # Write dataframe to sheet
-        body = {
-            'values': [dataframe.columns.values.tolist()] + dataframe.values.tolist()
-        }
+        values = [dataframe.columns.values.tolist()] + dataframe.values.tolist()
+        body = {'values': values}
         service.spreadsheets().values().update(
             spreadsheetId=spreadsheet_id,
-            range=sheet_name,
+            range=f"'{sheet_name}'!B1",
             valueInputOption='USER_ENTERED',
             body=body
         ).execute()
+
+        ty.sleep(1) #Added to prevent Rate Limits
+
+        if len(values) > 1:
+            requests = [
+                # 1. Request to set the header in cell A1 (Row index 0, Column index 0)
+                {
+                    "updateCells": {
+                        "rows": [
+                            {
+                                "values": [
+                                    {
+                                        "userEnteredValue": {
+                                            "stringValue": "Known?"
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+                        "fields": "userEnteredValue",
+                        "range": {
+                            "sheetId": sheet_id,
+                            "startRowIndex": 0,
+                            "endRowIndex": 1, # Row 1 is exclusive, so this covers only Row 0 (A1)
+                            "startColumnIndex": 0,
+                            "endColumnIndex": 1  # Column 1 is exclusive, so this covers only Column 0 (A)
+                        }
+                    }
+                },
+                # 2. Request to apply the checkbox data validation to rows A2 onwards
+                {
+                    "setDataValidation": {
+                        "range": {
+                            "sheetId": sheet_id,
+                            # Start at row index 1 (A2) to skip the new header in A1
+                            "startRowIndex": 1,
+                            "endRowIndex": len(values),
+                            "startColumnIndex": 0,
+                            "endColumnIndex": 1
+                        },
+                        "rule": {
+                            "condition": {"type": "BOOLEAN"},
+                            "showCustomUi": True
+                        }
+                    }
+                }
+            ]
+            
+            # Execute the batch update with both requests
+            service.spreadsheets().batchUpdate(
+                spreadsheetId=spreadsheet_id,
+                body={'requests': requests}
+            ).execute()
+    
 
     # To avoid hitting rate limits
     ty.sleep(2)
@@ -120,7 +179,6 @@ def process_file(file_path):
             update_google_sheet(service, DEFAULT_SHEET, site_name)
 
 
-    messagebox.showinfo("Success", "Google Sheets have been updated successfully.")
     root.destroy()
 
 

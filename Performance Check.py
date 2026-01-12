@@ -389,7 +389,7 @@ def update_performance_sheet(metrics):
         # --- Ratios based on AVERAGE (for column C) ---
         avg_inverter_keys = []
         for key, value in site_metrics.items():
-            if key.startswith('inverter_') and key.endswith('_peak_ratio'):
+            if key.startswith('inverter_') and key.endswith('_peak_ratio') and '_abs_' not in key:
                 inv_id_str = key.replace('inverter_', '').replace('_peak_ratio', '')
                 avg_inverter_keys.append((inv_id_str, value))
         
@@ -408,6 +408,29 @@ def update_performance_sheet(metrics):
                 body=body
             ).execute()
             print(f"Successfully updated average performance ratios for {site_name} in range {range_to_update}.")
+            time.sleep(1)
+
+        # --- Ratios based on ABSOLUTE PEAK (for column D) ---
+        abs_peak_inverter_keys = []
+        for key, value in site_metrics.items():
+            if key.startswith('inverter_') and key.endswith('_abs_peak_ratio'):
+                inv_id_str = key.replace('inverter_', '').replace('_abs_peak_ratio', '')
+                abs_peak_inverter_keys.append((inv_id_str, value))
+        
+        abs_peak_inverter_keys.sort(key=lambda x: natural_sort_key(x[0]))
+        abs_peak_ratios = [[None if isinstance(value, float) and np.isnan(value) else value] for _, value in abs_peak_inverter_keys]
+        
+        if abs_peak_ratios:
+            range_end = 1 + len(abs_peak_ratios)
+            range_to_update = f'{site_name}!D2:D{range_end}'
+            body = {'values': abs_peak_ratios}
+            service.spreadsheets().values().update(
+                spreadsheetId=performanceSheet,
+                range=range_to_update,
+                valueInputOption='USER_ENTERED',
+                body=body
+            ).execute()
+            print(f"Successfully updated absolute peak performance ratios for {site_name} in range {range_to_update}.")
             time.sleep(1)
     
     root.destroy()
@@ -529,6 +552,25 @@ def process_xlsx(file_path):
             for col in inverter_data_columns
         }
 
+        # --- New process: Find best row by absolute max value in any inverter column ---
+        # Find the maximum value across all inverter columns in the peak_dataframe
+        max_value_in_df = peak_dataframe[inverter_data_columns].max().max()
+
+        # Find the column that contains this overall maximum value
+        max_col_name = peak_dataframe[inverter_data_columns].max().idxmax()
+
+        # Find the index of the row where this maximum value occurs
+        max_value_row_index = peak_dataframe[max_col_name].idxmax()
+
+        # Get the entire row of data for that time
+        best_row_by_abs_max = peak_dataframe.loc[max_value_row_index]
+
+        # Create a dictionary of inverter production values from this new "best" row
+        inverter_abs_peaks = {
+            find_inverter_num(col): best_row_by_abs_max[col]
+            for col in inverter_data_columns
+        }
+
         inverter_sums = {find_inverter_num(col): pd.to_numeric(sum_dataframe[col], errors='coerce').sum() for col in sum_dataframe.columns[1:inv_num+1]}
         #if clean_sheet_name == 'Marshall':
             #print(f"Inverter sums for {clean_sheet_name}: {inverter_sums}")
@@ -555,6 +597,20 @@ def process_xlsx(file_path):
                     inv_peak = inverter_peaks.get(str(inv_num), 0)
                     peak_ratio = (inv_peak / max_peak) if max_peak > 0 else 0
                     performance_metrics[clean_sheet_name][f"inverter_{inv_num}_peak_ratio"] = peak_ratio
+
+                # --- Absolute Peak Ratio Calculation (NEW) ---
+                # Get the absolute peak production for each inverter in the group
+                group_abs_peaks = [inverter_abs_peaks.get(str(inv_num), 0) for inv_num in inverter_numbers_set]
+                max_abs_peak = max(group_abs_peaks) if group_abs_peaks else 0
+
+                # Store the max absolute peak for the group
+                performance_metrics[clean_sheet_name][f"{group_name}_MaxAbsPeak"] = max_abs_peak
+
+                # Calculate ratio for each inverter in the group based on the group's max absolute peak
+                for inv_num in inverter_numbers_set:
+                    inv_abs_peak = inverter_abs_peaks.get(str(inv_num), 0)
+                    abs_peak_ratio = (inv_abs_peak / max_abs_peak) if max_abs_peak > 0 else 0
+                    performance_metrics[clean_sheet_name][f"inverter_{inv_num}_abs_peak_ratio"] = abs_peak_ratio
         elif clean_sheet_name == "Duplin":
             performance_metrics[clean_sheet_name] = {}
             central_inverters = {}
@@ -563,18 +619,23 @@ def process_xlsx(file_path):
             string_inverters = {}
             string_inverter_peaks = {}
             string_counter = 1
+            central_inverter_abs_peaks = {}
+            string_inverter_abs_peaks = {}
 
-            for col in dataframe.columns[1:]:
-                inv_sum = pd.to_numeric(dataframe[col], errors='coerce').sum()
+            for col in dataframe.columns[1:inv_num+1]:
+                inv_sum = pd.to_numeric(sum_dataframe[col], errors='coerce').sum()
                 inv_peak = max_production_row[col]
+                inv_abs_peak = best_row_by_abs_max[col]
                 if 'central' in col.lower():
                     central_inverters[central_counter] = inv_sum
                     central_inverter_peaks[central_counter] = inv_peak
+                    central_inverter_abs_peaks[central_counter] = inv_abs_peak
                     #print(f"{col} Counter: {central_counter}, Sum: {inv_sum}")
                     central_counter += 1
                 elif 'string' in col.lower():
                     string_inverters[string_counter] = inv_sum
                     string_inverter_peaks[string_counter] = inv_peak
+                    string_inverter_abs_peaks[string_counter] = inv_abs_peak
                     #print(f"{col} Counter: {string_counter}, Sum: {inv_sum}")
                     string_counter += 1
 
@@ -600,6 +661,18 @@ def process_xlsx(file_path):
                         if group_name == "String Inverters":
                             inv_num += len(central_inverter_peaks)
                         performance_metrics[clean_sheet_name][f"inverter_{inv_num}_peak_ratio"] = peak_ratio if peak_ratio else 0
+            # --- Absolute Peak Ratio Calculation (NEW) ---
+            for group_name, group_abs_peaks in [("Central Inverters", central_inverter_abs_peaks), ("String Inverters", string_inverter_abs_peaks)]:
+                if group_abs_peaks:
+                    max_abs_peak = max(group_abs_peaks.values()) if group_abs_peaks.values() else 0
+                    performance_metrics[clean_sheet_name][f"{group_name}_MaxAbsPeak"] = max_abs_peak
+
+                    for inv_num, inv_abs_peak in group_abs_peaks.items():
+                        abs_peak_ratio = (inv_abs_peak / max_abs_peak) if max_abs_peak > 0 else 0
+                        # Adjust inverter number for string inverters to be unique
+                        if group_name == "String Inverters":
+                            inv_num += len(central_inverter_abs_peaks)
+                        performance_metrics[clean_sheet_name][f"inverter_{inv_num}_abs_peak_ratio"] = abs_peak_ratio if abs_peak_ratio else 0
             #print(performance_metrics[clean_sheet_name])
 
         elif sheet_name == "Conetoe":
@@ -640,6 +713,22 @@ def process_xlsx(file_path):
                 for main_inv_num, total_peak in main_inverter_peaks.items():
                     peak_ratio = (total_peak / max_peak) if max_peak > 0 else 0
                     performance_metrics[clean_sheet_name][f"inverter_{main_inv_num}_peak_ratio"] = peak_ratio
+            # --- Absolute Peak Ratio Calculation (NEW) ---
+            main_inverter_abs_peaks = {}
+            for inv_part, inv_abs_peak in inverter_abs_peaks.items():
+                if inv_part and '.' in inv_part:
+                    main_inv_num = inv_part.split('.')[0]
+                    if main_inv_num not in main_inverter_abs_peaks:
+                        main_inverter_abs_peaks[main_inv_num] = 0
+                    main_inverter_abs_peaks[main_inv_num] += inv_abs_peak # Summing the peak production for parts
+
+            if main_inverter_abs_peaks:
+                all_main_abs_peaks = list(main_inverter_abs_peaks.values())
+                max_abs_peak = max(all_main_abs_peaks) if all_main_abs_peaks else 0
+                performance_metrics[clean_sheet_name]["All Inverters_MaxAbsPeak"] = max_abs_peak
+                for main_inv_num, total_abs_peak in main_inverter_abs_peaks.items():
+                    abs_peak_ratio = (total_abs_peak / max_abs_peak) if max_abs_peak > 0 else 0
+                    performance_metrics[clean_sheet_name][f"inverter_{main_inv_num}_abs_peak_ratio"] = abs_peak_ratio
             #print(performance_metrics[clean_sheet_name])
         # This block should only run for sites NOT in INVERTER_GROUPS.
         else:
@@ -664,6 +753,16 @@ def process_xlsx(file_path):
             for inv_num, inv_peak in inverter_peaks.items():
                 peak_ratio = (inv_peak / max_peak) if max_peak > 0 else 0
                 performance_metrics[clean_sheet_name][f"inverter_{inv_num}_peak_ratio"] = peak_ratio
+
+            # --- Absolute Peak Ratio Calculation (NEW) ---
+            all_abs_peaks = list(inverter_abs_peaks.values())
+            max_abs_peak = max(all_abs_peaks) if all_abs_peaks else 0
+            performance_metrics[clean_sheet_name]["All Inverters_MaxAbsPeak"] = max_abs_peak
+
+            for inv_num, inv_abs_peak in inverter_abs_peaks.items():
+                abs_peak_ratio = (inv_abs_peak / max_abs_peak) if max_abs_peak > 0 else 0
+                performance_metrics[clean_sheet_name][f"inverter_{inv_num}_abs_peak_ratio"] = abs_peak_ratio
+
 
 
 
