@@ -387,6 +387,9 @@ def update_performance_sheet(metrics):
             print(f"Successfully updated performance ratios for {site_name} in range {range_to_update}.")
             time.sleep(1)  # Pause to avoid hitting API rate limits
         # --- Ratios based on AVERAGE (for column C) ---
+        avg_peak_timestamp = site_metrics.get('avg_peak_timestamp')
+        avg_peak_timestamp_str = avg_peak_timestamp.strftime('%Y-%m-%d %H:%M') if pd.notna(avg_peak_timestamp) else ''
+
         avg_inverter_keys = []
         for key, value in site_metrics.items():
             if key.startswith('inverter_') and key.endswith('_peak_ratio') and '_abs_' not in key:
@@ -409,6 +412,21 @@ def update_performance_sheet(metrics):
             ).execute()
             print(f"Successfully updated average performance ratios for {site_name} in range {range_to_update}.")
             time.sleep(1)
+            # Now, add the timestamp at the end of the column
+            timestamp_cell = f'{site_name}!C{range_end + 1}'
+            timestamp_body = {'values': [[avg_peak_timestamp_str]]}
+            service.spreadsheets().values().update(
+                spreadsheetId=performanceSheet,
+                range=timestamp_cell,
+                valueInputOption='USER_ENTERED',
+                body=timestamp_body
+            ).execute()
+            print(f"Successfully added timestamp for average peak ratios at {timestamp_cell}.")
+            time.sleep(1)
+
+        # --- Ratios based on ABSOLUTE PEAK (for column D) ---
+        abs_peak_timestamp = site_metrics.get('abs_peak_timestamp')
+        abs_peak_timestamp_str = abs_peak_timestamp.strftime('%Y-%m-%d %H:%M') if pd.notna(abs_peak_timestamp) else ''
 
         # --- Ratios based on ABSOLUTE PEAK (for column D) ---
         abs_peak_inverter_keys = []
@@ -432,7 +450,18 @@ def update_performance_sheet(metrics):
             ).execute()
             print(f"Successfully updated absolute peak performance ratios for {site_name} in range {range_to_update}.")
             time.sleep(1)
-    
+
+            # Now, add the timestamp at the end of the column
+            timestamp_cell = f'{site_name}!D{range_end + 1}'
+            timestamp_body = {'values': [[abs_peak_timestamp_str]]}
+            service.spreadsheets().values().update(
+                spreadsheetId=performanceSheet,
+                range=timestamp_cell,
+                valueInputOption='USER_ENTERED',
+                body=timestamp_body
+            ).execute()
+            print(f"Successfully added timestamp for absolute peak ratios at {timestamp_cell}.")
+            time.sleep(1)
     root.destroy()
 
 
@@ -541,6 +570,7 @@ def process_xlsx(file_path):
         # 4. Select the row corresponding to the time of peak average production
         # .loc ensures the index is used correctly to get the single row of data
         max_production_row = peak_dataframe.loc[max_avg_index]
+        avg_peak_timestamp = max_production_row[timestamp_col]
         
         # 5. Extract the production values for all inverters from that single row
         inverter_production_at_peak = max_production_row[inverter_data_columns]
@@ -564,6 +594,7 @@ def process_xlsx(file_path):
 
         # Get the entire row of data for that time
         best_row_by_abs_max = peak_dataframe.loc[max_value_row_index]
+        abs_peak_timestamp = best_row_by_abs_max[timestamp_col]
 
         # Create a dictionary of inverter production values from this new "best" row
         inverter_abs_peaks = {
@@ -576,6 +607,8 @@ def process_xlsx(file_path):
             #print(f"Inverter sums for {clean_sheet_name}: {inverter_sums}")
         if clean_sheet_name in INVERTER_GROUPS:
             performance_metrics[clean_sheet_name] = {}
+            performance_metrics[clean_sheet_name]['avg_peak_timestamp'] = avg_peak_timestamp
+            performance_metrics[clean_sheet_name]['abs_peak_timestamp'] = abs_peak_timestamp
             for group_name, inverter_numbers_set in INVERTER_GROUPS[clean_sheet_name].items():
                 group_sums = [inverter_sums.get(str(inv_num), 0) for inv_num in inverter_numbers_set]
                 max_sum = max(group_sums) if group_sums else 0
@@ -613,6 +646,8 @@ def process_xlsx(file_path):
                     performance_metrics[clean_sheet_name][f"inverter_{inv_num}_abs_peak_ratio"] = abs_peak_ratio
         elif clean_sheet_name == "Duplin":
             performance_metrics[clean_sheet_name] = {}
+            performance_metrics[clean_sheet_name]['avg_peak_timestamp'] = avg_peak_timestamp
+            performance_metrics[clean_sheet_name]['abs_peak_timestamp'] = abs_peak_timestamp
             central_inverters = {}
             central_inverter_peaks = {}
             central_counter = 1
@@ -677,6 +712,8 @@ def process_xlsx(file_path):
 
         elif sheet_name == "Conetoe":
             performance_metrics[clean_sheet_name] = {}
+            performance_metrics[clean_sheet_name]['avg_peak_timestamp'] = avg_peak_timestamp
+            performance_metrics[clean_sheet_name]['abs_peak_timestamp'] = abs_peak_timestamp
             # For Conetoe, sum parts like '1.1', '1.2' into a main inverter '1'
             main_inverter_sums = {}
             for inv_part, inv_sum in inverter_sums.items():
@@ -734,6 +771,8 @@ def process_xlsx(file_path):
         else:
             # If the site is not in INVERTER_GROUPS and not an exception, treat all inverters as one group.
             performance_metrics[clean_sheet_name] = {}
+            performance_metrics[clean_sheet_name]['avg_peak_timestamp'] = avg_peak_timestamp
+            performance_metrics[clean_sheet_name]['abs_peak_timestamp'] = abs_peak_timestamp
             all_sums = list(inverter_sums.values())
             max_sum = max(all_sums) if all_sums else 0
             performance_metrics[clean_sheet_name]["All Inverters"] = max_sum
