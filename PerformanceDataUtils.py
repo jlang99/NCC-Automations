@@ -4,11 +4,19 @@ import numpy as np
 import pandas as pd
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-import datetime as dt
+import datetime as dt # Already imported
 from bs4 import BeautifulSoup
 from tkinter import messagebox
-
-
+import requests
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+import os, sys
+#my Package
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(parent_dir)
+from PythonTools import EMAILS, CREDS, get_google_credentials
 
 JOSEPH_SHEET = "1iuBuPvvJn_H9_PBVGQn9FPQ3jixOiJc01Hd22vlvncw"
 JACOB_SHEET = "19BQEQy6mIH9pvh2qc0K7WDOuZCt0o715FVNMVd52xPw"
@@ -723,6 +731,7 @@ def update_cb_sheet(metrics, credentials):
 
         except HttpError as err:
             print(f"An error occurred while writing to sheet {sheet_name}: {err}")
+    email_cherryCB_report(credentials)
 
 def process_cb_file(file_path, credentials):
     xls = pd.ExcelFile(file_path)
@@ -1312,3 +1321,76 @@ def create_list_of_sheet_names(service, spreadsheet_id):
     except HttpError as err:
         print(f"An error occurred: {err}")
         return []
+    
+def email_cherryCB_report(creds):
+    # 1. Check if today is Monday (0) or Tuesday (1)
+    current_weekday = dt.datetime.now().weekday()
+    if current_weekday not in [0, 1]: # Monday or Tuesday
+        print("Cherry Blossom CB report email skipped: Not Monday or Tuesday.")
+        return
+
+    print("Attempting to send Cherry Blossom CB report email...")
+
+    sheets_service = build('sheets', 'v4', credentials=creds)
+    
+    sheet_title = "Cherry Blossom Solar, LLC" # The specific sheet to email
+    spreadsheet_id = CB_SHEET # Defined globally in PerformanceDataUtils.py
+
+    try:
+        # Get the sheet ID for "Cherry Blossom"
+        spreadsheet_metadata = sheets_service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+        sheet_id = None
+        for s in spreadsheet_metadata.get('sheets', []):
+            if s.get('properties', {}).get('title') == sheet_title:
+                sheet_id = s.get('properties', {}).get('sheetId')
+                break
+
+        if sheet_id is None:
+            print(f"Sheet '{sheet_title}' not found in spreadsheet '{spreadsheet_id}'. Cannot generate PDF.")
+            return
+
+        # Construct the URL to download the sheet as a PDF
+        headers = {'Authorization': 'Bearer ' + creds.token} # The user wants to export only columns A:G
+        pdf_url = f'https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export?format=pdf&gid={sheet_id}&range=A:G'
+        
+        print(f"Downloading PDF for '{sheet_title}' from '{pdf_url}'...")
+        response = requests.get(pdf_url, headers=headers)
+        response.raise_for_status() # Raise an exception for bad status codes
+        pdf_content = response.content
+        print("PDF downloaded successfully.")
+
+        # Email details
+        sender_email = EMAILS['NCC Desk']
+        recipients = [EMAILS['Newman Segars'], EMAILS['Parker Wilson'], EMAILS['Jacob Budd'], EMAILS['Joseph Lang']] # Or a specific list for Cherry Blossom
+        smtp_password = CREDS['shiftsumEmail']
+        smtp_server = 'smtp.gmail.com'
+        smtp_port = 587
+
+        msg = MIMEMultipart()
+        msg['From'] = sender_email
+        msg['To'] = ', '.join(recipients)
+        msg['Subject'] = f"Cherry Blossom CB Report - {dt.datetime.now().strftime('%Y-%m-%d')}"
+
+        # Static link to the Cherry Blossom CB sheet
+        cherry_blossom_sheet_link = f"https://docs.google.com/spreadsheets/d/1RGUwARwDdfDoC8VcNQgb5KC6gPOA-rcMaPsu6vlzg9o/edit?gid=1637179539#gid=1637179539"
+        html_body = f"<html><body><p>Hello Team,</p><p>Please find the Cherry Blossom Combiner Box report for {dt.datetime.now().strftime('%Y-%m-%d')} attached.</p><p>You can also view the live sheet here: <a href='{cherry_blossom_sheet_link}'>Cherry Blossom CB Sheet</a></p><p>Thank you,<br>NCC Automation</p></body></html>"
+        msg.attach(MIMEText(html_body, 'html'))
+
+        # Attach the PDF
+        attachment = MIMEApplication(pdf_content, _subtype="pdf")
+        attachment.add_header('Content-Disposition', 'attachment', filename=f"{sheet_title} CB Report {dt.datetime.now().strftime('%Y-%m-%d')}.pdf")
+        msg.attach(attachment)
+
+        # Send the email
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(sender_email, smtp_password)
+            server.send_message(msg)
+        print(f"Cherry Blossom CB report email sent successfully to {', '.join(recipients)}!")
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error downloading PDF for {sheet_title}: {e}")
+    except HttpError as e:
+        print(f"Error accessing Google Sheets API for {sheet_title}: {e}")
+    except Exception as e:
+        print(f"Failed to send email: {e}")

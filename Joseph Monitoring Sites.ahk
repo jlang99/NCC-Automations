@@ -43,28 +43,25 @@ AHKMenu.Add("Lily Events", LilyExcelTable)
 AHKMenu.Add("Lily Updates Notes", LilyNotes)
 AHKMenu.Add("Forecasting Report", Forecast)
 AHKMenu.Add("Open Logbook", Logbook)
-AHKMenu.Add("Tracker Check", Tracker)
-AHKMenu.Add("CB Check", CBCheck)
-AHKMenu.Add("Performance Check", PerformanceCheck)
-AHKMenu.Add("Weekly Report Update", WeeklyReport)
+AHKMenu.Add("Daily Checks GUI", DailyChecks)
 AHKMenu.Add("WO Input Doc", WOInput)
 AHKMenu.Add("NCC WO's Input && Notify && Shift Summary", WOInputTask)
-AHKMenu.Add("Email Technicians Tracker Data", TrackertoTech)
+AHKMenu.Add("Email Technicians Data", TrackertoTech)
 
 
 
 
 ;Setting Icons
 AHKMenu.SetIcon("Lily On-Site Personnel Update", "G:\Shared drives\O&M\NCC Automations\Icons\excel-file.ico")
-AHKMenu.SetIcon("OMOPS Websites && Lily Scada", "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", 1)
+AHKMenu.SetIcon("OMOPS Websites", "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", 1)
 AHKMenu.SetIcon("Joseph's Sites", "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", 1)
 AHKMenu.SetIcon("Lily Events", "G:\Shared drives\O&M\NCC Automations\Icons\excel-file.ico")
 AHKMenu.SetIcon("Open Logbook", "G:\Shared drives\O&M\NCC Automations\Icons\Logbook.ico")
 AHKMenu.SetIcon("Forecasting Report", "G:\Shared drives\O&M\NCC Automations\Icons\Forecast.ico")
 AHKMenu.SetIcon("Lily Updates Notes", "G:\Shared drives\O&M\NCC Automations\Icons\Notes.ico")
-AHKMenu.SetIcon("Tracker Check", "G:\Shared drives\O&M\NCC Automations\Icons\tracker_3KU_icon.ico")
-AHKMenu.SetIcon("CB Check", "G:\Shared drives\O&M\NCC Automations\Icons\tracker_3KU_icon.ico")
-AHKMenu.SetIcon("Performance Check", "G:\Shared drives\O&M\NCC Automations\Icons\tracker_3KU_icon.ico")
+AHKMenu.SetIcon("Daily Checks GUI", "G:\Shared drives\O&M\NCC Automations\Icons\tracker_3KU_icon.ico")
+AHKMenu.SetIcon("Email Technicians Data", "G:\Shared drives\O&M\NCC Automations\Icons\tracker_3KU_icon.ico")
+AHKMenu.SetIcon("WO Input Doc", "G:\Shared drives\O&M\NCC Automations\Icons\Notes.ico")
 
 
 f1::Send("^x")
@@ -106,15 +103,16 @@ f2::Send("^v")
     "Round trip travel time: `n"
     "Mileage: `n"
     "`n"
-    "{Ctrl down}b{Ctrl up}If work order is marked Complete --{Ctrl down}b{Ctrl up}`n"
-    "End Date: `n"
-    "End Time: `n"
-    "`n"
     "{Ctrl down}b{Ctrl up}If Return Trip is needed—{Ctrl down}b{Ctrl up}`n"
     "Tools needed to complete work: `n"
     "Parts to be ordered (Include pics, SN/manufacturer part number): `n"
     "Equipment needed to complete work: `n"
-    "Estimated time for repair: "
+    "Estimated time for repair: `n"
+    "Follow-Up Work Description: `n"
+    "`n"
+    "{Ctrl down}b{Ctrl up}If work order is marked Complete --{Ctrl down}b{Ctrl up}`n"
+    "End Date: `n"
+    "End Time: `n"
 )
 ^#a::Send(A_MM "/" A_DD " - JL - ")
 ^#d::Send("°")
@@ -329,7 +327,7 @@ f8::{
 }
 TrackertoTech(Item, *)
 {
-    Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\Technician Tracker Maps.pyw"
+    Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\Technician Data Delivery.pyw"
 }
 WOInputTask(Item, *)
 {
@@ -339,17 +337,10 @@ WOInput(Item, *)
 {
     Run "G:\Shared drives\Narenco Projects\O&M Projects\NCC\Procedures\Tech WO Input.docx"
 }
-CBCheck(Item, *)
+
+DailyChecks(Item, *)
 {
-    Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\CB Check.py"
-}
-PerformanceCheck(Item, *)
-{
-    Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\Performance Check.py"
-}
-Tracker(Item, *)
-{
-    Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\Tracker Check All Sites.py"
+    Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\Daily Checks\Daily Checks.py"
 }
 Logbook(Item, *)
 {

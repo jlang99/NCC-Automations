@@ -1,4 +1,3 @@
-#Testing Shift Summary Email Send
 import pyodbc
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -8,7 +7,6 @@ from datetime import datetime, date, time
 import time
 from tkinter import *
 from tkinter import simpledialog
-import openpyxl
 import pandas as pd
 from tkinter import messagebox
 import ctypes
@@ -16,14 +14,11 @@ import cv2
 import numpy as np
 import pyautogui
 import pytesseract
-import PIL.Image
 import re
-import subprocess
 import sys
 import os
+import requests
 from icecream import ic
-import json
-import tkinterweb
 
 
 from google.auth.transport.requests import Request
@@ -37,17 +32,17 @@ from googleapiclient.errors import HttpError
 # This allows us to import the 'PythonTools' package from there.
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir)
-from PythonTools import CREDS, EMAILS, PausableTimer
+from PythonTools import CREDS, EMAILS, PausableTimer, get_google_credentials
 
-lily_update_file = r"G:\Shared drives\O&M\NCC Automations\Emails\Lily Updates.txt"
+lily_update_file = r"G:\Shared drives\O&M\NCC Automations\Lily Tools\Lily Updates.txt"
 path_AHK = r"C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe"
-ahk_movedown_path = r"G:\Shared drives\O&M\NCC Automations\Emails\Move Lily Down.ahk"
-ahk_moveback_path = r"G:\Shared drives\O&M\NCC Automations\Emails\Move Lily Back.ahk"
+ahk_movedown_path = r"G:\Shared drives\O&M\NCC Automations\Lily Tools\Move Lily Down.ahk"
+ahk_moveback_path = r"G:\Shared drives\O&M\NCC Automations\Lily Tools\Move Lily Back.ahk"
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 openEventsSheet = '1byNW58NbhuDotmdzJEFplczsXLAP0iMyS9YVU5FqQgk'
 sheet_range= 'Open Events'
-
-
+PERSONNEL_SHEET = '1Uq8LSya5w6xiAbFhqeCa1upT2Zs-ueQmYFP6cxNkOkI'
+LILY_CB_SHEET = '1I4UfcXZYG87b4JmBahjgO4EADph-z4pCk6R9SS7vuW0'
 
 
 #X-Elio Notification Functions
@@ -61,17 +56,7 @@ def send_lily_email(solar_production, irradiance, updates):
     smtp_username = EMAILS['NCC Desk']
     smtp_password = CREDS['lilyEmail']
 
-    credentials = None
-    if os.path.exists("LilyEvents-token.json"):
-        credentials = Credentials.from_authorized_user_file("LilyEvents-token.json", SCOPES)
-    if not credentials or not credentials.valid:
-        if credentials and credentials.expired and credentials.refresh_token:
-            credentials.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(r"G:\Shared drives\O&M\NCC Automations\Daily Automations\NCC-AutomationCredentials.json", SCOPES)
-            credentials = flow.run_local_server(port=0)
-        with open("LilyEvents-token.json", "w+") as token:
-            token.write(credentials.to_json())
+    credentials = get_google_credentials()
 
     try:
         service = build("sheets", "v4", credentials= credentials)
@@ -181,7 +166,7 @@ def lily_email_data():
     myconfig = r"--psm 6 --oem 3"
 
     try:
-        findme = r"G:\Shared drives\O&M\NCC Automations\Emails\Don't Delete\to_find.png"
+        findme = r"G:\Shared drives\O&M\NCC Automations\Lily Tools\Don't Delete\to_find.png"
         location = pyautogui.locateOnScreen(findme)
         left, top, width, height = location
         new_left = int(left+102)
@@ -193,9 +178,9 @@ def lily_email_data():
         # Invert the binary image
         inverted_image = cv2.bitwise_not(binary_image)
 
-        sc_file_path = fr"G:\Shared drives\O&M\NCC Automations\Emails\Lily Update Data\Lily_data_{time.strftime('%Y-%m-%d_%H-%M-%S')}.png"
+        sc_file_path = fr"G:\Shared drives\O&M\NCC Automations\Lily Tools\Lily Update Data\Lily_data_{time.strftime('%Y-%m-%d_%H-%M-%S')}.png"
         cv2.imwrite(sc_file_path, inverted_image)
-        testy = r"G:\Shared drives\O&M\NCC Automations\Emails\Lily Update Data\Lily_data_2025-04-12_14-15-09.png"
+        testy = r"G:\Shared drives\O&M\NCC Automations\Lily Tools\Lily Update Data\Lily_data_2025-04-12_14-15-09.png"
         
         pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
         text = pytesseract.image_to_string(inverted_image, config=myconfig)
@@ -289,13 +274,217 @@ def lily_ask():
     if response == 1:
         lily_email_data()
 
+def update_Personnel_Sheet():
+    connect_db, c = dbcnxn()
+    
+    credentials = get_google_credentials()
+    try:
+        c.execute('SELECT * from [XELIOupdate]')
+        data = c.fetchall()
+    except pyodbc.ProgrammingError as e:
+        print(f"Error executing query: {e}")
+        connect_db.close()
+        return
+    finally:
+        connect_db.close()
+    #print(data)
+    if data == []:
+        exit()
+    # Function to format datetime to date or time
+    def format_datetime(dt, fmt):
+        if fmt == 'date':
+            return dt.date()
+        elif fmt == 'time':
+            return dt.time()
+
+    # Dictionary to hold processed data
+    processed_data = {}
+
+    for entry in data:
+        if not entry[1] and not entry [2]:
+            continue
+        log_id = entry[0]
+        description = entry[10]
+            
+        # Format dates and times
+        formatted_entry = (
+            log_id,
+            entry[1], #Company
+            entry[2], #Name
+            format_datetime(entry[3], 'date'),
+            format_datetime(entry[4], 'time'),
+            format_datetime(entry[6], 'date'),
+            format_datetime(entry[7], 'time'),
+            entry[9], #Total Work hours Float value
+            description
+        )
+        dictkey = str(log_id) + formatted_entry[2]
+        # Merge descriptions for the same log_id
+        if dictkey in processed_data and processed_data[dictkey][2] == entry[2]:
+            old_entry = processed_data[dictkey]
+            new_description = old_entry[10] + '; ' + description
+            new_entry = old_entry[:10] + (new_description,) 
+            processed_data[dictkey] = new_entry
+        else:
+            processed_data[dictkey] = formatted_entry
+
+    # Convert dictionary back to list of tuples
+    final_data = list(processed_data.values())
+    #ic(final_data)
+
+    def get_column_by_day(date):
+        day_mapping = {
+            0: 'D',  # Monday
+            1: 'E',  # Tuesday
+            2: 'F',  # Wednesday
+            3: 'G',  # Thursday
+            4: 'H',  # Friday
+            5: 'I',  # Saturday
+            6: 'J'   # Sunday
+        }
+        day_of_week = date.weekday()
+        return day_mapping.get(day_of_week)
+
+    # Prepare data for sheet
+    new_final_data = []
+    for entry in final_data:
+        # entry format: (log_id, col1, col2, date, time1, date2, time2, col7, description)
+        day_column = get_column_by_day(entry[3])  # entry[3] is the date for column C
+        time_concat = entry[4].strftime('%H:%M') + "-" + entry[6].strftime('%H:%M')
+        row = [
+            entry[1],  # Column A
+            entry[2],  # Column B
+            entry[3].strftime('%m/%d/%Y'),  # Column C
+            '',  # Column based on day of week
+            '', '', '', '', '', '', # Fill columns until K
+            entry[7] if entry[7] else "",  # Column K
+            '',  # Column L
+            entry[8] if entry[8] else "",  # Column M
+            'Yes'  # Column N
+        ]
+        # Insert the time_concat into the correct day column
+        day_column_index = ord(day_column) - ord('A')  # Convert column letter to index
+        row[day_column_index] = time_concat
+        new_final_data.append(row)
+
+    #ic(new_final_data)
+    #WRITE TO SHEET
+    try:
+        service = build("sheets", "v4", credentials= credentials)
+        sheets = service.spreadsheets()
+    
+        body = {"values": new_final_data}
+        
+        sheets.values().append(
+            spreadsheetId=PERSONNEL_SHEET, 
+            range="X-Elio",  # Specify the sheet and range where data should be appended
+            valueInputOption="USER_ENTERED", 
+            body=body
+        ).execute()
+        
+    except HttpError as error:
+        print(error)
+    messagebox.showinfo(message="Updated Lily Personnel Sheet!", title="Lily Updater")
+    
+
+
+def dbcnxn():
+    #Connect to DB
+    db = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\O&M\NCC\NCC 039.accdb;'
+    connect_db = pyodbc.connect(db)
+    c = connect_db.cursor()
+    return connect_db, c
 #End of X-Elio Tasks
+
+
+#####
+# Internal CB spreadsheet email
+def lilyCB_email():
+    creds = get_google_credentials()
+    try:
+        service = build("sheets", "v4", credentials= creds)
+        sheets = service.spreadsheets()
+        
+        # Get sheet ID for "OverView"
+        spreadsheet_metadata = sheets.get(spreadsheetId=LILY_CB_SHEET).execute()
+        sheet_id = None
+        for s in spreadsheet_metadata.get('sheets', []):
+            if s.get('properties', {}).get('title') == "OverView":
+                sheet_id = s.get('properties', {}).get('sheetId')
+                break
+        
+        if sheet_id is None:
+            print("Sheet 'OverView' not found.")
+            return
+
+        # Download PDF
+        headers = {'Authorization': 'Bearer ' + creds.token}
+        pdf_url = f'https://docs.google.com/spreadsheets/d/{LILY_CB_SHEET}/export?format=pdf&gid={sheet_id}&range=A:K'
+        
+        response = requests.get(pdf_url, headers=headers)
+        response.raise_for_status()
+        
+        # Temp file
+        filename = f"Lily_CB_Overview_{datetime.now().strftime('%Y-%m-%d')}.pdf"
+        temp_path = os.path.join(os.path.expanduser("~"), "AppData", "Local", "Temp", filename)
+        
+        with open(temp_path, 'wb') as f:
+            f.write(response.content)
+            
+        # Email configuration
+        sender_email = EMAILS['NCC Desk']
+        recipients = EMAILS['Lily CB Report List']
+        smtp_port = 587
+        smtp_username = EMAILS['NCC Desk']
+        smtp_password = CREDS['lilyEmail']
+        
+        msg = MIMEMultipart()
+        msg['From'] = sender_email
+        msg['To'] = ', '.join(recipients)
+        msg['Subject'] = f"Lily Internal CB Report - {datetime.now().strftime('%Y-%m-%d')}"
+        
+        sheet_link = "https://docs.google.com/spreadsheets/d/1I4UfcXZYG87b4JmBahjgO4EADph-z4pCk6R9SS7vuW0/edit?gid=2071680363#gid=2071680363"
+        
+        body = f"""
+        <html>
+            <body>
+                <p>Hello Team,</p>
+                <p>Please find the Lily Internal Combiner Box Overview report attached.</p>
+                <p>You can view the live sheet here: <a href="{sheet_link}">Lily CB Sheet</a></p>
+                <p>Thank you,<br>NCC Automation</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
+        
+        with open(temp_path, "rb") as f:
+            attach = MIMEApplication(f.read(), _subtype="pdf")
+            attach.add_header('Content-Disposition', 'attachment', filename=filename)
+            msg.attach(attach)
+            
+        with smtplib.SMTP("smtp.gmail.com", smtp_port) as server:
+            server.starttls()
+            server.login(smtp_username, smtp_password)
+            server.send_message(msg)
+            
+        messagebox.showinfo(message="Email sent successfully.", title="Lily CB Report")
+        
+        # Cleanup
+        os.remove(temp_path)
+
+    except HttpError as error:
+        print(error)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
+
+
 
 #Brandons Tools
 def invoicing_noti():
-    db = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\Narenco Projects\O&M Projects\NCC\NCC\NCC 039.accdb;'
-    connect_dbn = pyodbc.connect(db)
-    c = connect_dbn.cursor()
+    connect_dbn, c = dbcnxn()
+    
 
     if datetime.today().weekday() == 4: # Friday
         table_name = "NARENCO_mf_Access_logs"
@@ -487,7 +676,7 @@ myappid = 'NCC.Desk.Functions'
 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
 root = Tk()
-root.title("NCC Desk Functions")
+root.title("Lily Update Tool")
 #root.geometry("280x118")
 root.wm_attributes("-topmost", True)
 try:
@@ -498,7 +687,10 @@ except Exception as e:
 cb_var = BooleanVar()
 test_var = BooleanVar()
 
-lily_email_button = Button(root, command= lambda: lily_email_data(), text= "Lily Email", font=("Calibiri", 18), pady= 5, padx= 70)
+lilyCB_button = Button(root, command= lambda: lilyCB_email(), text= "Lily Internal CB Email", font=("Calibiri", 16), pady= 5, padx= 25, bg='lightblue')
+lilyCB_button.pack(pady= 2)
+
+lily_email_button = Button(root, command= lambda: lily_email_data(), text= "Lily Email", font=("Calibiri", 18), pady= 5, padx= 70, bg='yellow')
 lily_email_button.pack(pady= 2)
 
 test_frame = Frame(root)
@@ -583,11 +775,7 @@ def check_to_send():
     pmhu = ub3var.get()
     pmmu = ub4var.get()
 
-    #Shift Summary Send Time
-    if open_day > 4:
-        target_time = datetime.now().replace(hour= 14, minute= 55, second=0, microsecond= 0)
-    else:
-        target_time = datetime.now().replace(hour= 18, minute= 55, second=0, microsecond= 0)
+
     #Morning Time
     lilyamUtarget_time = datetime.now().replace(hour= amhu, minute= ammu, second=0, microsecond= 0)
     lilyamLtarget_time = datetime.now().replace(hour= amhl, minute= amml, second=0, microsecond= 0)
@@ -602,10 +790,8 @@ def check_to_send():
         lily_email_data()
     else:
         ic("Criteria not met", check, pmhl, pmml, lilypmLtarget_time.time(), pmhu, pmmu, lilypmUtarget_time.time())
-    if currenttime >= target_time.time():
-        shift_Summary()
-    else: #Check Every Minute
-        root.after(56000, lambda: check_to_send())
+    
+    root.after(56000, lambda: check_to_send())
 
 
 
@@ -636,9 +822,19 @@ else:
     ub3var.set(17)
     ub4var.set(1)
 
-check_to_send()
 
 if datetime.now().weekday() in [0, 4]:
     invoicing_noti()
 
+response = messagebox.askyesno("Confirmation", "Do you want to update X-Elio's Lily Sign in Spreadsheet?")
+if response:
+    update_Personnel_Sheet()
+
+check_to_send()
 root.mainloop()
+
+
+
+
+########
+# Add a Function to send the CB Sheet to Newman and Tom and Zack and Jacob and I only a weekly basis, every Monday. Or Via a Button on the Main GUI???

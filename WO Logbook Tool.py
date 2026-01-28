@@ -419,6 +419,8 @@ def parse_wo(wos):
                 repairs_note = "by the technician on site"
             else:
                 repairs_note = 'by the NCC remotely'
+        else:
+            repairs_note = 'by the technician on site'
 
 
 

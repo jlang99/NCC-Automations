@@ -17,7 +17,7 @@ Sleep 5000
 
 Run "G:\Shared drives\O&M\NCC Automations\Notification System\#AE API GUI SQL.pyw"
 if WinWait("Timestamps", , 10) {
-    WinMove(3790, 300, , , "NCC Desk Functions")
+    WinMove(3790, 300, , , "Lily Update Tool")
     WinMove(3074, 300, , , "Timestamps")
     WinMove(3363, 300, , , "Alert Windows Info")
     WinMove(3119, 618, , , "Personnel On-Site")

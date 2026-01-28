@@ -10,13 +10,16 @@ import io
 #my Package
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir)
-from PythonTools import find_last_digit, get_google_credentials, TRACKER_MAPPING, EMAILS
+from PythonTools import find_last_digit, get_google_credentials, TRACKER_MAPPING, EMAILS, CREDS
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google.auth import exceptions as auth_exceptions
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import smtplib
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.http import MediaIoBaseUpload
 
@@ -38,6 +41,14 @@ JACOB_FOLDER_ID = '17_JtiQRzJu-iPNx8DxT35WMT1S5Y1C1q'
 
 
 TRACKER_CHECK_SHEET = '1EzgmTCAAkCuOIVVRTUtNOp_jXdZpT7Hob-DUhEuYmrE'
+
+# Helper function to convert Excel column letters (e.g., 'A', 'AA') to a 0-indexed number
+def excel_column_to_number(column_name):
+    number = 0
+    for char in column_name:
+        number = number * 26 + (ord(char.upper()) - ord('A')) + 1
+    return number - 1 # Convert to 0-indexed
+
 
 def create_update_request(cell_a1_notation, tracker_data, tracker_number=None, angle=None):
     """Creates a Google Sheet update request dictionary for a single cell."""
@@ -67,7 +78,8 @@ def create_update_request(cell_a1_notation, tracker_data, tracker_number=None, a
     # The sheetId is hardcoded to 0, assuming the target is always the first sheet.
     sheet_id = 0
     start_row = int(re.search(r'\d+', cell_a1_notation).group()) - 1
-    start_col = ord(re.search(r'[A-Z]+', cell_a1_notation).group().upper()) - ord('A')
+    column_letters = re.search(r'[A-Z]+', cell_a1_notation).group().upper()
+    start_col = excel_column_to_number(column_letters)
 
     return {
         "updateCells": {
@@ -501,7 +513,7 @@ def format_tracker_result(match, sheet_name):
                 if sheet_name in {'Shorthorn', 'Sunflower Solar'}:
                     groups = list(groups)  # Convert tuple to list to allow modification
                     groups[0] = str(int(groups[0]) + 1)
-                tracker = f"NCU {groups[0]} Tracker {groups[1]}"
+                tracker = f"NCU {groups[0]} Tracker {int(groups[1])-60 if sheet_name == 'Shorthorn' and groups[0] == '2' else groups[1]}"
             elif sheet_name == 'Cardinal':
                 tracker = f'Master {groups[0]} Tracker {groups[1]}'
             else:
@@ -566,52 +578,52 @@ def process_AE_Tracker_file(file_path, credentials):
 
             if spreadsheet_id:
                 print(f"Preparing updates for {sheet_name} Google Sheet Map...")
+            pattern = None
+            #Tracker Number Regex Pattern
+            if sheet_name in {"Bulloch 1A", "Bulloch 1B", "Richmond", "McLean", "Upson"}:
+                pattern = r"A\d S (\d+)"
+            elif sheet_name == 'Hickory Solar, LLC':
+                pattern = r"Tracker (\d+).*A\d S (\d+)"
+            elif sheet_name in {"Bishopville II Solar", "Jefferson Solar"}:
+                pattern = r"\(ZC(\d)\).*Angle (\d+)"
+            elif sheet_name in {"Harding Solar", "Washington Solar", "Whitehall Solar", "Gray Fox Solar"}:
+                pattern = r"TCU (\d+)"
+            elif sheet_name in {"Bluebird Solar", "Freight Line Solar", "Hayes", "Holly Swamp Solar", "PG Solar", "Van Buren Solar"}:
+                pattern = r"angle (\d+)"
+            elif sheet_name == "Cardinal":
+                pattern = r'Controller\s+(\d+).*angle\s+(\d+)'
+            elif sheet_name in {'Cherry Blossom Solar, LLC', 'Conetoe'}:
+                pattern = r"Tracker.*(\d+).*Motor (\d+)"
+            elif sheet_name in {'Marshall Solar', 'Tedder Solar', 'Thunderhead Solar'}:
+                pattern = r"Angle (\d+)"
+            elif sheet_name == 'Shorthorn':
+                pattern = r"ST(\d+).*?(?:S|TCU)\s*(\d+)"
+            elif sheet_name == 'Sunflower Solar':
+                pattern = r"\(ST(\d)\):\s+Tracker\sPosition\s+TCU\s+(\d+)"
+            elif sheet_name in {"Ogburn Solar Farm", "Hickson Solar Farm"}:
+                pattern = r"(\d+)"
+            elif sheet_name in {"Longleaf Pine Solar, LLC"}:
+                pattern = r"Tracker Controller (\d+):\s*Tracker\s*Position\s*TCU\s*(\d+)"
+            elif sheet_name in {"Williams Solar, LLC"}:
+                pattern = r"Tracker controller (\d+):\s*Tracker\s*Position\s*TCU\s*(\d+)"
+            elif sheet_name == 'Elk Solar':
+                pattern = r"NCU (\d+).*Position (\d+)"
+            elif sheet_name == 'Whitetail':
+                pattern = r'Control\s*(\d)\.\d.*?(\d+)|(\d+)'
 
             for column in df.columns[1:]:# Iterate through each column except the first one
+                #print(column)
                 days4 = df.iloc[1:][column].tail(96) #Hours from Midnight Last Night counting back
                 days4 = pd.to_numeric(days4, errors='coerce') #Sets to a number, correcting negative values
                 
                 position = None
-
-                #Tracker Number Regex Pattern
-                if sheet_name in {"Bulloch 1A", "Bulloch 1B", "Richmond", "McLean", "Upson"}:
-                    pattern = r"A\d S (\d+)"
-                elif sheet_name == 'Hickory Solar, LLC':
-                    pattern = r"Tracker (\d+).*A\d S (\d+)"
-                elif sheet_name in {"Bishopville II Solar", "Jefferson Solar"}:
-                    pattern = r"\(ZC(\d)\).*Angle (\d+)"
-                elif sheet_name in {"Harding Solar", "Washington Solar", "Whitehall Solar", "Gray Fox Solar"}:
-                    pattern = r"TCU (\d+)"
-                elif sheet_name in {"Bluebird Solar", "Freight Line Solar", "Hayes", "Holly Swamp Solar", "PG Solar", "Van Buren Solar"}:
-                    pattern = r"angle (\d+)"
-                elif sheet_name == "Cardinal":
-                    pattern = r'Controller\s+(\d+).*angle\s+(\d+)'
-                elif sheet_name in {'Cherry Blossom Solar, LLC', 'Conetoe'}:
-                    pattern = r"Tracker.*(\d+).*Motor (\d+)"
-                elif sheet_name in {'Marshall Solar', 'Tedder Solar', 'Thunderhead Solar'}:
-                    pattern = r"Angle (\d+)"
-                elif sheet_name == 'Shorthorn':
-                    pattern = r"ST(\d+).*?(?:S|TCU)\s*(\d+)"
-                elif sheet_name == 'Sunflower Solar':
-                    pattern = r"\(ST(\d)\).*TCU (\d+)"
-                elif sheet_name in {"Ogburn Solar Farm", "Hickson Solar Farm"}:
-                    pattern = r"(\d+)"
-                elif sheet_name in {"Longleaf Pine Solar, LLC"}:
-                    pattern = r"Tracker Controller (\d+):\s*Tracker\s*Position\s*TCU\s*(\d+)"
-                elif sheet_name in {"Williams Solar, LLC"}:
-                    pattern = r"Tracker controller (\d+):\s*Tracker\s*Position\s*TCU\s*(\d+)"
-                elif sheet_name == 'Elk Solar':
-                    pattern = r"NCU (\d+).*Position (\d+)"
-                elif sheet_name == 'Whitetail':
-                    pattern = r'Control\s*(\d)\.\d.*?(\d+)|(\d+)'
-
-
                 tracker_obj = re.search(pattern, column)
-                tracker = format_tracker_result(tracker_obj, sheet_name)
+                #print("OBJ", tracker_obj)
+                if tracker_obj:
+                    tracker = format_tracker_result(tracker_obj, sheet_name)
                 if pattern:
                     inv_match = re.search(pattern, column)
-                    #if sheet_name == "Williams Solar, LLC":
-                        #print("Match 1: ", inv_match)
+                    #print("Inv Match: ", inv_match)
                     if inv_match:
                         try:
                             tr_num = inv_match.group(3) if inv_match.group(3) else inv_match.group(2) # For the Whitetail Regex, group 3 is either None or the Tracker Number for Master 1
@@ -622,10 +634,9 @@ def process_AE_Tracker_file(file_path, credentials):
                                 tr_num = inv_match.group(1) #Simple single group matches like Ogburn and Hickson
                     else:
                         tr_num = 0
-                    #if sheet_name == "Williams Solar, LLC":
-                        #print("Tracker: ", tr_num)
-                    #if sheet_name == "Whitetail":
-                    #    print(f"Processing Tracker {tr_num} for Inverter Loss Data\n{inv_match}\n{pattern}\n{column}")
+
+                    #print("Tracker: ", tr_num)
+                    #print(f"Processing Tracker {tr_num} for Inverter Loss Data\n{inv_match}\n{pattern}\n{column}")
                     if sheet_name in tracker_data_dict:
                         for key, value_list in tracker_data_dict[sheet_name].items():
                             if tracker in value_list:
@@ -717,6 +728,7 @@ def process_AE_Tracker_file(file_path, credentials):
                         request = create_update_request(cell_a1, days4, tracker, position)
 
                     update_requests.append(request)
+                #print("Next Column!")
 
             # After iterating through all columns for the sheet, send the batch update
             if spreadsheet_id and update_requests:
@@ -870,33 +882,7 @@ def get_day_with_ordinal_suffix(d):
     suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(d % 10, 'th')
     return f"{d}{suffix}"
 
-def email_pdf_reports():
-    creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first time.
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            try:
-                creds.refresh(Request())
-            except auth_exceptions.RefreshError as e:
-                print(f"Error refreshing token: {e}")
-                print("This is likely due to a change in scopes. Deleting token.json and re-authenticating.")
-                os.remove('token.json')
-                script_dir = os.path.dirname(os.path.abspath(__file__))
-                credentials_path = os.path.join(script_dir, 'NCC-AutomationCredentials.json')
-                flow = InstalledAppFlow.from_client_secrets_file(credentials_path, SCOPES)
-                creds = flow.run_local_server(port=0)
-        else:
-            # Make sure you have a 'credentials.json' file from Google Cloud in the same directory
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            credentials_path = os.path.join(script_dir, 'NCC-AutomationCredentials.json')
-            flow = InstalledAppFlow.from_client_secrets_file(credentials_path, SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
+def email_pdf_reports(creds):
     drive_service = build('drive', 'v3', credentials=creds)
     sheets_service = build('sheets', 'v4', credentials=creds)
 
@@ -993,7 +979,7 @@ def email_pdf_reports():
     msg = MIMEMultipart()
     msg['From'] = sender_email
     msg['To'] = ', '.join(recipients)
-    msg['Subject'] = f"Weekly Tracker Reports - {datetime.now().strftime('%Y-%m-%d')}"
+    msg['Subject'] = f"Weekly Tracker Reports - {dt.datetime.now().strftime('%Y-%m-%d')}"
 
     html_body = "<html><body><p>Hello Team,</p><p>Please find the Weekly tracker reports linked below:</p>"
 
@@ -1288,6 +1274,7 @@ def process_TR_report_wos(file_path, creds):
     service = build('sheets', 'v4', credentials=creds)
     spreadsheet_metadata = service.spreadsheets().get(spreadsheetId=TR_REPORT_SHEET_ID).execute()
     valid_sites = {s.get('properties', {}).get('title') for s in spreadsheet_metadata.get('sheets', [])}
+    print("Start! Trakcer Report")
 
     df = pd.read_excel(file_path, sheet_name='Sheet1')
 
@@ -1461,4 +1448,4 @@ def process_TR_report_wos(file_path, creds):
             service=service
         )
     if dt.datetime.now().weekday() < 2: #Monday and Tuesday
-        email_pdf_reports()
+        email_pdf_reports(creds) 

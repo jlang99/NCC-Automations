@@ -6,7 +6,7 @@ AHKMenu.Add("&Postion Time && AE API", Move)
 AHKMenu.Add("&Lily SCADA", OpenLily)
 AHKMenu.Add("Data Pull Script", DataPull)
 AHKMenu.Add("Email Notification (Breaker Only)", BreakerNoti)
-AHKMenu.Add("Daily Email App", DailyEmail)
+AHKMenu.Add("Lily Automation Tool", LilyTool)
 AHKMenu.Add("NCC Weather App", WindApp)
 AHKMenu.Add("WO Input/Customer Notification Tool", WOTool)
 
@@ -75,9 +75,9 @@ BreakerNoti(Item, *)
 {
    Run "G:\Shared drives\O&M\NCC Automations\Notification System\Email Notification (Breaker).py"
 }
-DailyEmail(Item, *)
+LilyTool(Item, *)
 {
-   Run "G:\Shared drives\O&M\NCC Automations\Emails\NCC Desk Daily Emails Automation.pyw"
+   Run "G:\Shared drives\O&M\NCC Automations\Lily Tools\Lily Update Automation.pyw"
 }
 Close(Item, *)
 {
@@ -94,7 +94,7 @@ Close(Item, *)
 
 Move(Item, *)
 {
-    WinMove(3790, 300, , , "NCC Desk Functions")
+    WinMove(3790, 300, , , "Lily Update Tool")
     WinMove(3074, 300, , , "Timestamps")
     WinMove(3363, 300, , , "Alert Windows Info")
     WinMove(3119, 618, , , "Personnel On-Site")
@@ -212,7 +212,7 @@ MsgBox("Check for Proper Initials at Summary of Issue:'nInput Proper Start Date 
 ;WOGUI.Show
 
 ;HOTKEYS
-^+z::AHKMenu.Show
+^#z::AHKMenu.Show
 
 ^#r::{
 Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\restart.pyw"
