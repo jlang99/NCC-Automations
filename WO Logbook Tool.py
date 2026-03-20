@@ -36,7 +36,6 @@ customer_report_items = [('Harrison St.', hst_customer_data, False), ('NARENCO',
 
 
 def dbcnxn():
-    global db, connect_db, c
     #Connect to DB
     realdb = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\O&M\NCC\NCC 039.accdb;'
     db = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=G:\Shared drives\O&M\NCC\NCC 039 - Testing.accdb'
@@ -45,6 +44,8 @@ def dbcnxn():
     else:    
         connect_db = pyodbc.connect(realdb)
     c = connect_db.cursor()
+    return connect_db, c
+
 
 def browse_files():
     # Get the path to the Downloads folder
@@ -267,8 +268,7 @@ def send_shift_Summary(html_table, preview_window):
 
     
 def parse_wo(wos):
-    global c
-    dbcnxn()
+    connect_db, c = dbcnxn()
 
     activity_logbook_data = []
     wb = load_workbook(wos)
@@ -320,6 +320,7 @@ def parse_wo(wos):
             root.destroy()
 
         for customervar, siteList in CUSTOMERS_SITES_EMAINT.items():
+            #print(site, siteList)
             if site in siteList:
                 customer = customervar
                 break
@@ -499,7 +500,6 @@ def send_email(customer_data, window, customer):
     today = datetime.date.today().strftime("%m/%d/%y")
     message = MIMEMultipart()
     me = EMAILS['Joseph Lang']
-    brandon = EMAILS['Brandon Arrowood']
     if customer == 'Harrison St.':
         message["Subject"] = f"NARENCO O&M | {today} Incident Report - {customer}"
         recipients = EMAILS['Harrison St']
@@ -570,8 +570,7 @@ def send_email(customer_data, window, customer):
     window.destroy()
 
 def site_access_query(customer):
-    global c
-    dbcnxn()
+    connect_db, c = dbcnxn()
     if customer == 'Soltage':
         sites = [7, 9, 22, 23, 24]
     #Add Other customers LocationIDs according to the NCC 039 Database

@@ -47,6 +47,7 @@ AHKMenu.Add("Daily Checks GUI", DailyChecks)
 AHKMenu.Add("WO Input Doc", WOInput)
 AHKMenu.Add("NCC WO's Input && Notify && Shift Summary", WOInputTask)
 AHKMenu.Add("Email Technicians Data", TrackertoTech)
+AHKMenu.Add("Route Estimator", Routes)
 
 
 
@@ -75,8 +76,8 @@ f2::Send("^v")
 
 
 ;ED Input
-^#NumpadEnter::Send(A_Hour ":" A_Min)
-^#NumpadAdd::Send(A_MM "/" A_DD "/" A_YYYY)
+^#=::Send(A_Hour ":" A_Min)
+^#-::Send(A_MM "/" A_DD "/" A_YYYY)
 
 ;Menu
 ^<!z::AHKMenu.Show
@@ -255,7 +256,7 @@ f8::{
         Sleep 200
         ;Plan of Day
         If(A_DDDD = "Tuesday" or A_DDDD = "Wednesday" or A_DDDD = "Thursday" or A_DDDD = "Friday" or A_DDDD = "Monday")
-        Run "https://docs.google.com/spreadsheets/d/1G3Tv1mWdRk7EU9wtF-rR1WfBkGKVSUBY/edit?gid=1366818878#gid=1366818878"
+        Run "https://docs.google.com/spreadsheets/d/1nDoYH4wTpS_JRUfwHFOFRfnJZ5T5Uvll/edit?gid=2060170341#gid=2060170341"
         Sleep 200
         ; NARENCO Connections sheet
         Run "https://docs.google.com/spreadsheets/d/1YTd0c_VLAGog1NTxo0VGzAdGFUhs9oquY1WJFz2NJA0/edit#gid=0"
@@ -325,9 +326,15 @@ f8::{
         WinWait("RUN FORECAST PROCEDURE", , 10)
         Click 190, 120
 }
+
+
+Routes(Item, *)
+{
+    Run "G:\Shared drives\O&M\NCC Automations\Ops Manger Tools\Routing Tool.pyw"
+}
 TrackertoTech(Item, *)
 {
-    Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\Technician Data Delivery.pyw"
+    Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\Daily Checks\Technician Data Delivery.pyw"
 }
 WOInputTask(Item, *)
 {
@@ -335,7 +342,7 @@ WOInputTask(Item, *)
 }
 WOInput(Item, *)
 {
-    Run "G:\Shared drives\Narenco Projects\O&M Projects\NCC\Procedures\Tech WO Input.docx"
+    Run "G:\Shared drives\O&M\NCC\Procedures\WO Creation Instructions.docx"
 }
 
 DailyChecks(Item, *)
@@ -364,7 +371,7 @@ LilyExcelTable(Item, *)
 }
 LilyNotes(Item, *)
 {
-    Run "G:\Shared drives\O&M\NCC Automations\Emails\Lily Updates.txt"
+    Run "G:\Shared drives\O&M\NCC Automations\Lily Tools\Lily Updates.txt"
 }
 
 
@@ -3562,3 +3569,8 @@ WeeklyReport(Item, *)
 {
     Run "G:\Shared drives\O&M\NCC Automations\Daily Automations\Weekly Updates.py"
 }
+
+
+
+
+f9::ExitApp()

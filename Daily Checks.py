@@ -21,16 +21,22 @@ def run_tracker_check():
     root.update()  # Ensure GUI updates to show disabled state
 
     downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
-    file_path = filedialog.askopenfilename(
+    loss_file_path = filedialog.askopenfilename(
+        title="Select Tracker Loss Data Excel File",
+        filetypes=[("Excel files", "*.xlsx")],
+        initialdir=downloads_folder
+    )
+    angles_file_path = filedialog.askopenfilename(
         title="Select Tracker Data Excel File",
         filetypes=[("Excel files", "*.xlsx")],
         initialdir=downloads_folder
     )
 
-    if file_path:
+    if angles_file_path and loss_file_path:
         try:
             creds = get_google_credentials()
-            TrackerDataUtils.process_AE_Tracker_file(file_path, creds)
+            TrackerDataUtils.process_AE_Tracker_Loss_file(loss_file_path, creds)
+            TrackerDataUtils.process_AE_Tracker_file(angles_file_path, creds)
             messagebox.showinfo("Success", "Tracker check processing complete!")
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred during tracker check: {e}")
@@ -175,7 +181,7 @@ button_properties = [
     ("INV Performance Check", "gold", run_inv_performance_check),
     ("Weekly Performance Updates", "green", run_weekly_performance_updates),
     ("Tracker Reports", "lightblue", run_tracker_reports),
-    ("Send Reports Tool", "violet", lambda: os.startfile(r"G:\Shared drives\O&M\NCC Automations\Daily Automations\Technician Data Delivery.pyw"))
+    ("Send Reports Tool", "violet", lambda: os.startfile(r"G:\Shared drives\O&M\NCC Automations\Daily Automations\Daily Checks\Technician Data Delivery.pyw"))
 ]
 
 # Create and pack the buttons

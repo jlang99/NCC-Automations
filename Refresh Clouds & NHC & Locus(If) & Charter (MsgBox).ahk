@@ -94,18 +94,18 @@ Close(Item, *)
 
 Move(Item, *)
 {
-    WinMove(3790, 300, , , "Lily Update Tool")
-    WinMove(3074, 300, , , "Timestamps")
-    WinMove(3363, 300, , , "Alert Windows Info")
-    WinMove(3119, 618, , , "Personnel On-Site")
-    WinMove(2198, "-429", , , "Site Data")
-    WinMove(2999, "-429", , , "Soltage")
-    WinMove(3556, "-429", , , "NCEMC")
-    WinMove(4117, "-371", , , "NARENCO")
-    WinMove(5172, 8, , , "Sol River's Portfolio")
-    WinMove(6259, 26, , , "Harrison Street")
+    WinMove(4767, 46, , , "Lily Update Tool")
+    WinMove(3949, 46, , , "Timestamps")
+    WinMove(4241, 46, , , "Alert Windows Info")
+    WinMove(4055, 330, , , "Personnel On-Site")
+    WinMove(2587, 37, , , "Site Data")
+    WinMove(5398, 46, , , "Soltage")
+    WinMove(5079, 46, , , "NCEMC")
+    WinMove(6365, "-305", , , "NARENCO")
+    WinMove(7030, "-380", , , "Sol River's Portfolio")
+    WinMove(8403, "-365", , , "Harrison Street")
     
-WinMove(2398, 746, , , "Notified events")
+WinMove(4715, 505, , , "Notified events")
 
 }
 

@@ -6,6 +6,7 @@ import time as ty
 from bs4 import BeautifulSoup
 import requests
 import io
+import pyodbc
 
 #my Package
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -73,7 +74,10 @@ def create_update_request(cell_a1_notation, tracker_data, tracker_number=None, a
     else:
         # Green color for "OK"
         color = {"red": 0.0, "green": 1.0, "blue": 0.0}
-        cell_text = f"Row {tracker_number}"
+        if isinstance(tracker_number, str):
+            cell_text = tracker_number
+        elif tracker_number is not None:
+            cell_text = f"Row {tracker_number}"
 
     # The sheetId is hardcoded to 0, assuming the target is always the first sheet.
     sheet_id = 0
@@ -345,57 +349,41 @@ ae_to_manu_dict = {
     },
 # In Progress
     "Elk Solar": {
-        "NCU 1":{
-            1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10,
-            11: 11, 12: 12, 13: 13, 14: 14, 15: 15, 16: 16, 17: 17, 18: 18, 19: 19, 20: 20,
-            21: 21, 22: 22, 23: 23, 24: 24, 25: 25, 26: 26, 27: 27, 28: 28, 29: 29, 30: 30,
-            31: 31, 32: 32, 33: 33, 34: 34, 35: 35, 36: 36, 37: 37, 38: 38, 39: 39, 40: 40,
-            41: 41, 42: 42, 43: 43, 44: 44, 45: 45, 46: 46, 47: 47, 48: 48, 49: 49, 50: 50,
-            51: 51, 52: 52, 53: 53, 54: 54, 55: 55, 56: 56, 57: 57, 58: 58, 59: 59, 60: 60,
-            61: 61, 62: 62, 63: 63, 64: 64, 65: 65, 66: 66, 67: 67, 68: 68, 69: 69, 70: 70,
-            71: 71, 72: 72, 73: 73, 74: 74, 75: 75, 76: 76, 77: 77, 78: 78, 79: 79, 80: 80,
-            81: 81, 82: 82, 83: 83, 84: 84, 85: 85, 86: 86, 87: 87, 88: 88, 89: 89, 90: 90,
-            91: 91, 92: 92, 93: 93, 94: 94, 95: 95, 96: 96, 97: 97, 98: 98, 99: 99, 100: 100,
-            101: 101, 102: 102, 103: 103, 104: 104, 105: 105, 106: 106, 107: 107, 108: 108, 109: 109, 110: 110,
-            111: 111, 112: 112, 113: 113, 114: 114, 115: 115, 116: 116, 117: 117, 118: 118, 119: 119, 120: 120,
-            121: 121, 122: 122, 123: 123, 124: 124, 125: 125, 126: 126, 127: 127, 128: 128, 129: 129, 130: 130,
-            131: 131, 132: 132, 133: 45, 134: 134, 135: 135, 136: 136, 137: 137, 138: 51, 139: 139, 140: 140,
-            141: 141, 142: 142, 143: 143, 144: 144, 145: 145, 146: 146, 147: 147, 148: 148, 149: 149, 150: 150,
-            151: 151, 152: 152, 153: 153, 154: 154, 155: 155, 156: 156, 157: 157, 158: 158, 159: 159, 160: 160,
-            161: 161, 162: 162, 163: 163, 164: 164, 165: 165, 166: 166, 167: 167, 168: 168, 169: 169, 170: 170,
-            171: 171, 172: 172, 173: 173, 174: 174, 175: 175, 176: 176, 177: 177, 178: 178, 179: 179, 180: 180,
-            181: 181, 182: 182, 183: 183, 184: 184, 185: 185, 186: 186, 187: 187, 188: 188, 189: 189, 190: 190,
-            191: 191, 192: 192, 193: 193, 194: 194, 195: 195
-            },
-        "NCU 2":{
-            1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10,
-            11: 11, 12: 12, 13: 13, 14: 14, 15: 15, 16: 16, 17: 17, 18: 18, 19: 19, 20: 20,
-            21: 21, 22: 22, 23: 23, 24: 24, 25: 25, 26: 26, 27: 27, 28: 28, 29: 29, 30: 30,
-            31: 31, 32: 32, 33: 33, 34: 34, 35: 35, 36: 36, 37: 37, 38: 38, 39: 39, 40: 40,
-            41: 41, 42: 42, 43: 43, 44: 44, 45: 45, 46: 46, 47: 47, 48: 48, 49: 49, 50: 50,
-            51: 51, 52: 52, 53: 53, 54: 54, 55: 55, 56: 56, 57: 57, 58: 58, 59: 59, 60: 60,
-            61: 61, 62: 62, 63: 63, 64: 64, 65: 65, 66: 66, 67: 67, 68: 68, 69: 69, 70: 70,
-            71: 71, 72: 72, 73: 73, 74: 74, 75: 75, 76: 76, 77: 77, 78: 78, 79: 79, 80: 80,
-            81: 81, 82: 82, 83: 83, 84: 84, 85: 85, 86: 86, 87: 87, 88: 88, 89: 89, 90: 90,
-            91: 91, 92: 92, 93: 93, 94: 94, 95: 95, 96: 96, 97: 97, 98: 98, 99: 99, 100: 100,
-            101: 101, 102: 102, 103: 103, 104: 104, 105: 105, 106: 106, 107: 107, 108: 108, 109: 109, 110: 110,
-            111: 111, 112: 112, 113: 113, 114: 114, 115: 115, 116: 116, 117: 117, 118: 118, 119: 119, 120: 120,
-            121: 121, 122: 122, 123: 123, 124: 124, 125: 125, 126: 126, 127: 127, 128: 128, 129: 129, 130: 130,
-            131: 131, 132: 132, 133: 133, 134: 134, 135: 135, 136: 136, 137: 137, 138: 138, 139: 139, 140: 140,
-            141: 141, 142: 142, 143: 143, 144: 144, 145: 145, 146: 146, 147: 147, 148: 148, 149: 149, 150: 150,
-            151: 151, 152: 152, 153: 153, 154: 154, 155: 155, 156: 156, 157: 157, 158: 158, 159: 159, 160: 160,
-            161: 161, 162: 162, 163: 163, 164: 164, 165: 165, 166: 166, 167: 167, 168: 168, 169: 169, 170: 170,
-            171: 171, 172: 172, 173: 173, 174: 174, 175: 175, 176: 176, 177: 177, 178: 178, 179: 179, 180: 180,
-            181: 181, 182: 182, 183: 183, 184: 184, 185: 185, 186: 186, 187: 187, 188: 188, 189: 189, 190: 190,
-            191: 191, 192: 192, 193: 193, 194: 194, 195: 195, 196: 196, 197: 197, 198: 198, 199: 199, 200: 200,
-            201: 201, 202: 202, 203: 203, 204: 204, 205: 205, 206: 206, 207: 207, 208: 208, 209: 209, 210: 210,
-            211: 211, 212: 212, 213: 213, 214: 214, 215: 215, 216: 216, 217: 217, 218: 218, 219: 219, 220: 220,
-            221: 221, 222: 222, 223: 223, 224: 224, 225: 225, 226: 226, 227: 227, 228: 228, 229: 229, 230: 230,
-            231: 231, 232: 232, 233: 233, 234: 234, 235: 235, 236: 236, 237: 237, 238: 238, 239: 239, 240: 240,
-            241: 241, 242: 242, 243: 243, 244: 244, 245: 245, 246: 246, 247: 247, 248: 248, 249: 249, 250: 250,
-            251: 251, 252: 252, 253: 253, 254: 254, 255: 255, 256: 256, 257: 257, 258: 258, 259: 259, 260: 260,
-            261: 261, 262: 262, 263: 263, 264: 264, 265: 265, 266: 266, 267: 267, 268: 268, 269: 269, 270: 270
-        },
+            "NCU 1 Tracker 1": "NCU 1 Address# 1", "NCU 1 Tracker 2": "NCU 1 Address# 2", "NCU 1 Tracker 3": "NCU 1 Address# 3", "NCU 1 Tracker 4": "NCU 1 Address# 4", "NCU 1 Tracker 5": "NCU 1 Address# 5", "NCU 1 Tracker 6": "NCU 1 Address# 6", "NCU 1 Tracker 7": "NCU 1 Address# 7", "NCU 1 Tracker 8": "NCU 1 Address# 8", "NCU 1 Tracker 9": "NCU 1 Address# 9", "NCU 1 Tracker 10": "NCU 1 Address# 10",
+            "NCU 1 Tracker 11": "NCU 1 Address# 11", "NCU 1 Tracker 12": "NCU 1 Address# 12", "NCU 1 Tracker 13": "NCU 1 Address# 13", "NCU 1 Tracker 14": "NCU 1 Address# 14", "NCU 1 Tracker 15": "NCU 1 Address# 15", "NCU 1 Tracker 16": "NCU 1 Address# 16", "NCU 1 Tracker 17": "NCU 1 Address# 17", "NCU 1 Tracker 18": "NCU 1 Address# 18", "NCU 1 Tracker 19": "NCU 1 Address# 19", "NCU 1 Tracker 20": "NCU 1 Address# 20",
+            "NCU 1 Tracker 21": "NCU 1 Address# 21", "NCU 1 Tracker 22": "NCU 1 Address# 22", "NCU 1 Tracker 23": "NCU 1 Address# 23", "NCU 1 Tracker 24": "NCU 1 Address# 24", "NCU 1 Tracker 25": "NCU 1 Address# 25", "NCU 1 Tracker 26": "NCU 1 Address# 26", "NCU 1 Tracker 27": "NCU 1 Address# 27", "NCU 1 Tracker 28": "NCU 1 Address# 28", "NCU 1 Tracker 29": "NCU 1 Address# 29", "NCU 1 Tracker 30": "NCU 1 Address# 30",
+            "NCU 1 Tracker 31": "NCU 1 Address# 31", "NCU 1 Tracker 32": "NCU 1 Address# 32", "NCU 1 Tracker 33": "NCU 1 Address# 33", "NCU 1 Tracker 34": "NCU 1 Address# 34", "NCU 1 Tracker 35": "NCU 1 Address# 35", "NCU 1 Tracker 36": "NCU 1 Address# 36", "NCU 1 Tracker 37": "NCU 1 Address# 37", "NCU 1 Tracker 38": "NCU 1 Address# 38", "NCU 1 Tracker 39": "NCU 1 Address# 39", "NCU 1 Tracker 40": "NCU 1 Address# 40",
+            "NCU 1 Tracker 41": "NCU 1 Address# 41", "NCU 1 Tracker 42": "NCU 1 Address# 42", "NCU 1 Tracker 43": "NCU 1 Address# 51", "NCU 1 Tracker 44": "NCU 1 Address# 44", "NCU 1 Tracker 45": "NCU 1 Address# 45", "NCU 1 Tracker 46": "NCU 1 Address# 46", "NCU 1 Tracker 47": "NCU 1 Address# 47", "NCU 1 Tracker 48": "NCU 1 Address# 48", "NCU 1 Tracker 49": "NCU 1 Address# 49", "NCU 1 Tracker 50": "NCU 1 Address# 50",
+# TRacker 51 and 43 flipped. 43 is 51 for sure.
+            "NCU 1 Tracker 51": "NCU 1 Address# 43", "NCU 1 Tracker 52": "NCU 1 Address# 52", "NCU 1 Tracker 53": "NCU 1 Address# 53", "NCU 1 Tracker 54": "NCU 1 Address# 54", "NCU 1 Tracker 55": "NCU 1 Address# 55", "NCU 1 Tracker 56": "NCU 1 Address# 56", "NCU 1 Tracker 57": "NCU 1 Address# 57", "NCU 1 Tracker 58": "NCU 1 Address# 58", "NCU 1 Tracker 59": "NCU 1 Address# 59", "NCU 1 Tracker 60": "NCU 1 Address# 60",
+            "NCU 1 Tracker 61": "NCU 1 Address# 61", "NCU 1 Tracker 62": "NCU 1 Address# 62", "NCU 1 Tracker 63": "NCU 1 Address# 63", "NCU 1 Tracker 64": "NCU 1 Address# 64", "NCU 1 Tracker 65": "NCU 1 Address# 65", "NCU 1 Tracker 66": "NCU 1 Address# 66", "NCU 1 Tracker 67": "NCU 1 Address# 67", "NCU 1 Tracker 68": "NCU 1 Address# 68", "NCU 1 Tracker 69": "NCU 1 Address# 69", "NCU 1 Tracker 70": "NCU 1 Address# 70",
+            "NCU 1 Tracker 71": "NCU 1 Address# 71", "NCU 1 Tracker 72": "NCU 1 Address# 72", "NCU 1 Tracker 73": "NCU 1 Address# 73", "NCU 1 Tracker 74": "NCU 1 Address# 74", "NCU 1 Tracker 75": "NCU 1 Address# 75", "NCU 1 Tracker 76": "NCU 1 Address# 76", "NCU 1 Tracker 77": "NCU 1 Address# 77", "NCU 1 Tracker 78": "NCU 1 Address# 78", "NCU 1 Tracker 79": "NCU 1 Address# 79", "NCU 1 Tracker 80": "NCU 1 Address# 80",
+            "NCU 1 Tracker 81": "NCU 1 Address# 81", "NCU 1 Tracker 82": "NCU 1 Address# 82", "NCU 1 Tracker 83": "NCU 1 Address# 83", "NCU 1 Tracker 84": "NCU 1 Address# 84", "NCU 1 Tracker 85": "NCU 1 Address# 85", "NCU 1 Tracker 86": "NCU 1 Address# 86", "NCU 1 Tracker 87": "NCU 1 Address# 87", "NCU 1 Tracker 88": "NCU 1 Address# 88", "NCU 1 Tracker 89": "NCU 1 Address# 89", "NCU 1 Tracker 90": "NCU 1 Address# 90",
+            "NCU 1 Tracker 91": "NCU 1 Address# 91", "NCU 1 Tracker 92": "NCU 1 Address# 92", "NCU 1 Tracker 93": "NCU 1 Address# 93", "NCU 1 Tracker 94": "NCU 1 Address# 94", "NCU 1 Tracker 95": "NCU 1 Address# 95", "NCU 1 Tracker 96": "NCU 1 Address# 96", "NCU 1 Tracker 97": "NCU 1 Address# 97", "NCU 1 Tracker 98": "NCU 1 Address# 98", "NCU 1 Tracker 99": "NCU 1 Address# 99", "NCU 1 Tracker 100": "NCU 1 Address# 100 - Not in SunTrack???",
+
+            "NCU 2 Tracker 1": "NCU 2 Address# 1", "NCU 2 Tracker 2": "NCU 2 Address# 2", "NCU 2 Tracker 3": "NCU 2 Address# 3", "NCU 2 Tracker 4": "NCU 2 Address# 4", "NCU 2 Tracker 5": "NCU 2 Address# 5", "NCU 2 Tracker 6": "NCU 2 Address# 6", "NCU 2 Tracker 7": "NCU 2 Address# 7", "NCU 2 Tracker 8": "NCU 2 Address# 8", "NCU 2 Tracker 9": "NCU 2 Address# 9", "NCU 2 Tracker 10": "NCU 2 Address# 10",
+            "NCU 2 Tracker 11": "NCU 2 Address# 11", "NCU 2 Tracker 12": "NCU 2 Address# 12", "NCU 2 Tracker 13": "NCU 2 Address# 13", "NCU 2 Tracker 14": "NCU 2 Address# 14", "NCU 2 Tracker 15": "NCU 2 Address# 15", "NCU 2 Tracker 16": "NCU 2 Address# 16", "NCU 2 Tracker 17": "NCU 2 Address# 17", "NCU 2 Tracker 18": "NCU 2 Address# 18", "NCU 2 Tracker 19": "NCU 2 Address# 19", "NCU 2 Tracker 20": "NCU 2 Address# 20",
+            "NCU 2 Tracker 21": "NCU 2 Address# 21", "NCU 2 Tracker 22": "NCU 2 Address# 22", "NCU 2 Tracker 23": "NCU 2 Address# 23", "NCU 2 Tracker 24": "NCU 2 Address# 24", "NCU 2 Tracker 25": "NCU 2 Address# 25", "NCU 2 Tracker 26": "NCU 2 Address# 26", "NCU 2 Tracker 27": "NCU 2 Address# 27", "NCU 2 Tracker 28": "NCU 2 Address# 28", "NCU 2 Tracker 29": "NCU 2 Address# 29", "NCU 2 Tracker 30": "NCU 2 Address# 30",
+            "NCU 2 Tracker 31": "NCU 2 Address# 31", "NCU 2 Tracker 32": "NCU 2 Address# 32", "NCU 2 Tracker 33": "NCU 2 Address# 33", "NCU 2 Tracker 34": "NCU 2 Address# 34", "NCU 2 Tracker 35": "NCU 2 Address# 35", "NCU 2 Tracker 36": "NCU 2 Address# 36", "NCU 2 Tracker 37": "NCU 2 Address# 37", "NCU 2 Tracker 38": "NCU 2 Address# 38", "NCU 2 Tracker 39": "NCU 2 Address# 39", "NCU 2 Tracker 40": "NCU 2 Address# 40",
+            "NCU 2 Tracker 41": "NCU 2 Address# 41", "NCU 2 Tracker 42": "NCU 2 Address# 42", "NCU 2 Tracker 43": "NCU 2 Address# 43", "NCU 2 Tracker 44": "NCU 2 Address# 44", "NCU 2 Tracker 45": "NCU 2 Address# 45", "NCU 2 Tracker 46": "NCU 2 Address# 46", "NCU 2 Tracker 47": "NCU 2 Address# 47", "NCU 2 Tracker 48": "NCU 2 Address# 48", "NCU 2 Tracker 49": "NCU 2 Address# 49", "NCU 2 Tracker 50": "NCU 2 Address# 50",
+            "NCU 2 Tracker 51": "NCU 2 Address# 51", "NCU 2 Tracker 52": "NCU 2 Address# 52", "NCU 2 Tracker 53": "NCU 2 Address# 53", "NCU 2 Tracker 54": "NCU 2 Address# 54", "NCU 2 Tracker 55": "NCU 2 Address# 55", "NCU 2 Tracker 56": "NCU 2 Address# 56", "NCU 2 Tracker 57": "NCU 2 Address# 57", "NCU 2 Tracker 58": "NCU 2 Address# 58", "NCU 2 Tracker 59": "NCU 2 Address# 59", "NCU 2 Tracker 60": "NCU 2 Address# 60",
+            "NCU 2 Tracker 61": "NCU 2 Address# 61", "NCU 2 Tracker 62": "NCU 2 Address# 62", "NCU 2 Tracker 63": "NCU 2 Address# 63", "NCU 2 Tracker 64": "NCU 2 Address# 64", "NCU 2 Tracker 65": "NCU 2 Address# 65", "NCU 2 Tracker 66": "NCU 2 Address# 66", "NCU 2 Tracker 67": "NCU 2 Address# 67", "NCU 2 Tracker 68": "NCU 2 Address# 68", "NCU 2 Tracker 69": "NCU 2 Address# 69", "NCU 2 Tracker 70": "NCU 2 Address# 70",
+            "NCU 2 Tracker 71": "NCU 2 Address# 71", "NCU 2 Tracker 72": "NCU 2 Address# 72", "NCU 2 Tracker 73": "NCU 2 Address# 73", "NCU 2 Tracker 74": "NCU 2 Address# 74", "NCU 2 Tracker 75": "NCU 2 Address# 75", "NCU 2 Tracker 76": "NCU 2 Address# 76",
+
+    },
+    # Finished
+    "Harding Solar": { 
+        1:1, 2:3, 3:5, 4:7, 5:9, 6:11, 7:13, 8:15, 9:17, 10:19, 
+        11:59, 12:21, 13: 61, 14: 23, 15: 63, 16: 25, 17: 27, 18: 66, 19: 29, 20: 68,
+        21: 31, 22: 70, 23: 33, 24: 72, 25: 35, 26: 74, 27: 37, 28: 76, 29: 39, 30: 78,
+        31: 41, 32: 80, 33: 43, 34: 82, 35: 45, 36: 84, 37: 47, 38: 86, 39: 49, 40: 88,
+        41: 51, 42: 90, 43: 53, 44: 92, 45: 55, 46: 94, 47: 57, 48: 96, 49: 98, 50: 100,
+        51: 102, 52: 104, 53: 2, 54: 4, 55: 6, 56: 8, 57: 10, 58: 12, 59: 14, 60: 16,
+        61: 18, 62: 20, 63: 60, 64: 22, 65: 62, 66: 24, 67: 64, 68: 26, 69: 65, 70: 28,
+        71: 67, 72: 30, 73: 69, 74: 32, 75: 71, 76: 34, 77: 73, 78: 36, 79: 75, 80: 38,
+        81: 77, 82: 40, 83: 79, 84: 42, 85: 81, 86: 44, 87: 83, 88: 46, 89: 85, 90: 48,
+        91: 87, 92: 50, 93: 89, 94: 52, 95: 91, 96: 54, 97: 93, 98: 56, 99: 95, 100: 58,
+        101: 97, 102: 99, 103: 101, 104: 103, 105: 105
     },
 #FINISHED | COMPLETED
     "Hayes": {
@@ -508,12 +496,25 @@ def format_tracker_result(match, sheet_name):
         groups = match.groups()
         if len(groups) == 2:
             if sheet_name in {'Cherry Blossom Solar, LLC', 'Conetoe'}:
-                tracker = f"Tracker {groups[0]} Motor {groups[1]}"
+                if sheet_name == 'Conetoe':
+                    tr_text = "TMC 1"
+                    mt_text = "M"
+                else:
+                    tr_text = "Tracker "
+                    mt_text = "Motor "
+
+                tracker = f"{tr_text}{groups[0]}: {mt_text}{groups[1]}"
             elif sheet_name in {'Shorthorn', 'Sunflower Solar', 'Hickory Solar, LLC', 'Elk Solar', 'Longleaf Pine Solar, LLC', 'Williams Solar, LLC'}:
                 if sheet_name in {'Shorthorn', 'Sunflower Solar'}:
-                    groups = list(groups)  # Convert tuple to list to allow modification
+                    groups = list(groups)
                     groups[0] = str(int(groups[0]) + 1)
-                tracker = f"NCU {groups[0]} Tracker {int(groups[1])-60 if sheet_name == 'Shorthorn' and groups[0] == '2' else groups[1]}"
+
+                if sheet_name == "Elk Solar":
+                    second_num = int(groups[1]) - 95 if int(groups[0]) == 1 else int(groups[1]) - 195
+                else:
+                    second_num = int(groups[1])
+                tracker = f"NCU {groups[0]} Tracker {second_num}"
+
             elif sheet_name == 'Cardinal':
                 tracker = f'Master {groups[0]} Tracker {groups[1]}'
             else:
@@ -529,7 +530,11 @@ def format_tracker_result(match, sheet_name):
         tracker = "ERROR: Tracker # Not Found"
 
     if tracker != "ERROR: Tracker # Not Found" and sheet_name in {site for site, data in ae_to_manu_dict.items()}: #These sites are perfectly modeled AE to Manufacturer
-        tr_num = find_last_digit(tracker)
+        
+        if sheet_name == "Elk Solar":
+            tr_num = tracker
+        else:
+            tr_num = find_last_digit(tracker)
         data = ae_to_manu_dict[sheet_name]
         #print(len(data), ' ', sheet_name)
         if len(data) > 5:
@@ -539,8 +544,6 @@ def format_tracker_result(match, sheet_name):
             #ic(tracker, match, groups) #Debugging
             if sheet_name in {'Whitetail', 'Cardinal'}:
                 tier = re.search(r'Master \d', tracker)
-            elif sheet_name in {'Elk Solar'}:
-                tier = re.search(r'NCU \d', tracker)
             else:
                 tier = None # Throws an Error if tier is not found in other multi-tiered sites
             manu_tr_num = ae_to_manu_dict[sheet_name][tier.group(0)][tr_num]
@@ -551,9 +554,148 @@ def format_tracker_result(match, sheet_name):
                 return f'{tier.group(0)} Row {manu_tr_num}'
             else:
                 return f'{tier.group(0)} Address #{manu_tr_num}'
-        return manu_tr_num if sheet_name == 'Holly Swamp Solar' else f'Row {manu_tr_num}'
+        return manu_tr_num if sheet_name in  {'Holly Swamp Solar', 'Elk Solar'} else f'Row {manu_tr_num}'
     else:
         return tracker
+
+def connect_db():
+    # Create a connection to the SQL database
+    dbconn_str = (
+                r'DRIVER={ODBC Driver 18 for SQL Server};'
+                fr'SERVER={CREDS['DB_IP']}\SQLEXPRESS;'
+                r'DATABASE=NARENCO_O&M_AE;'
+                fr'UID={CREDS['DB_UID']};'
+                fr'PWD={CREDS['DB_PWD']};'
+                r'Encrypt=no;'
+            )
+    
+    dbconnection = pyodbc.connect(dbconn_str)
+    c = dbconnection.cursor()
+    return c, dbconnection
+
+def input_loss_data_to_SQL(loss_data):
+    c, dbconnection = connect_db()
+    
+    for sheet, date_data in loss_data.items():
+        clean_sheet_name = sheet.replace(", LLC", "").replace(" Solar", "").strip()
+        table_name = f"[{clean_sheet_name} Tracker Loss Data]"
+        
+        if not date_data:
+            continue
+
+        # Get a sample of trackers from the first date to create table/columns
+        first_date = next(iter(date_data))
+        trackers_sample = date_data[first_date]
+
+        try:
+            # Check if table exists
+            c.execute(f"SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '{clean_sheet_name} Tracker Loss Data'")
+            if c.fetchone()[0] == 0:
+                # Create table
+                columns_def = ["[Timestamp] DATETIME"]
+                for tracker_col in trackers_sample.keys():
+                    columns_def.append(f"[{tracker_col}] FLOAT")
+                
+                create_table_sql = f"CREATE TABLE {table_name} ({', '.join(columns_def)})"
+                c.execute(create_table_sql)
+                dbconnection.commit()
+                print(f"Created table: {table_name}")
+            
+            # Check for missing columns and add them if necessary
+            c.execute(f"SELECT TOP 0 * FROM {table_name}")
+            existing_columns = [column[0] for column in c.description]
+            
+            for tracker_col in trackers_sample.keys():
+                if tracker_col not in existing_columns:
+                    alter_sql = f"ALTER TABLE {table_name} ADD [{tracker_col}] FLOAT"
+                    c.execute(alter_sql)
+                    dbconnection.commit()
+                    print(f"Added column {tracker_col} to {table_name}")
+
+            for timestamp_str, trackers in date_data.items():
+                # Check if entry already exists for this timestamp
+                check_sql = f"SELECT COUNT(*) FROM {table_name} WHERE [Timestamp] = ?"
+                c.execute(check_sql, (timestamp_str,))
+                if c.fetchone()[0] > 0:
+                    continue
+
+                # Insert data
+                columns = ["[Timestamp]"]
+                placeholders = ["?"]
+                params = [timestamp_str]
+
+                for tracker_col, loss_val in trackers.items():
+                    columns.append(f"[{tracker_col}]")
+                    placeholders.append("?")
+                    params.append(loss_val)
+                
+                insert_sql = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
+                c.execute(insert_sql, params)
+            
+            dbconnection.commit()
+            print(f"Inserted data for {sheet}")
+
+        except pyodbc.Error as e:
+            print(f"Database error for {sheet}: {e}")
+ 
+
+    dbconnection.close()
+
+def process_AE_Tracker_Loss_file(file_path, credentials):
+    xls = pd.ExcelFile(file_path)
+    print("Starting Loss Calculation")
+    service = build('sheets', 'v4', credentials=credentials)
+    
+    loss_data = []
+    tracker_daily_loss = {}
+    for sheet_name in xls.sheet_names:
+        if sheet_name != "Sheet 1":
+            df = pd.read_excel(file_path, sheet_name=sheet_name, skiprows=2)
+            df = df.iloc[1:]
+            df.iloc[:, -3] = df.iloc[:, -3].fillna(df.iloc[:, -2])
+            # Sum all numeric columns (excluding timestamp at index 0) to get a single scalar
+            print(f"Processing {sheet_name} | {dt.datetime.now().time()}")
+            loss_sum = float(df.iloc[:, 1:-3].sum().sum()) # Sums all the Node Loss Data
+            meter_sum = float(df.iloc[:, -3 if sheet_name != 'Conetoe' else -2].sum()) # Sums all Week of Meter Data
+            loss_data.append([loss_sum, meter_sum])
+
+            tracker_daily_loss[sheet_name] = {}
+            timestamps = pd.to_datetime(df.iloc[:, 0], errors='coerce')
+            
+            tracker_cols = df.columns[1:-3]
+            df['Date'] = timestamps.dt.date
+            grouped = df.groupby('Date')
+
+            for date_val, group in grouped:
+                if pd.isna(date_val):
+                    continue
+                date_str = date_val.strftime('%Y-%m-%d 00:00:00')
+                tracker_daily_loss[sheet_name][date_str] = {}
+                for col in tracker_cols:
+                    col_sum = pd.to_numeric(group[col], errors='coerce').sum()
+                    tracker_daily_loss[sheet_name][date_str][col] = float(col_sum)
+
+    print("Writing data to SQL")
+    input_loss_data_to_SQL(tracker_daily_loss)
+
+    print(f"Writing to Spreadsheet")
+    
+    try:
+        service = build('sheets', 'v4', credentials=credentials)
+        sheet = service.spreadsheets()
+
+        # Write new data to the sheet
+        # First, write the data values to the sheet
+        body = {"values": loss_data}
+        sheet.values().update(spreadsheetId=TRACKER_CHECK_SHEET,
+                            range=f"OverView!E2:F{len(loss_data) + 1}", 
+                            valueInputOption="USER_ENTERED",
+                            body=body).execute()
+
+        ty.sleep(0.5)
+
+    except HttpError as err:
+        print(err)    
 
 
 def process_AE_Tracker_file(file_path, credentials):
@@ -1007,13 +1149,12 @@ def delete_TR_report_rows(sheet_name, service):
     
     begin_row = 12
     s_row = 16
-    # Define the range to search for the start and end markers
-    search_range = f"{sheet_name}!G{begin_row}:K"
+
 
     # Read the data from the specified range
     result = service.spreadsheets().values().get(
         spreadsheetId=TR_REPORT_SHEET_ID,
-        range=search_range
+        range=f"{sheet_name}!G{begin_row}:K"
     ).execute()
     ty.sleep(1) #Slow the executes to prevent being kicked by Google (playing with the minimum time)
     values = result.get('values', [])
@@ -1063,14 +1204,10 @@ def delete_TR_report_rows(sheet_name, service):
 
 
 
-
-    # Define the range to search for the start and end markers for the second deletion
-    search_range_2 = f"{sheet_name}!F{s_row}:K"
-
     # Read the data from the specified range
     result_2 = service.spreadsheets().values().get(
         spreadsheetId=TR_REPORT_SHEET_ID,
-        range=search_range_2
+        range=f"{sheet_name}!G{s_row}:K"
     ).execute()
     ty.sleep(1) #Slow the executes to prevent being kicked by Google (playing with the minimum time)
 
@@ -1124,10 +1261,8 @@ def insert_TR_report_rows(service, spreadsheet_id, sheet_id, start_row_index, nu
     if num_rows <= 0:
         return
 
-    if openVclosed:
-        start_col = 6  # Column G
-    else:
-        start_col = 5  # Column F
+    
+    start_col = 6  # Column G
     requests = [{
         'insertDimension': {
             'range': {
@@ -1183,8 +1318,66 @@ def insert_TR_report_rows(service, spreadsheet_id, sheet_id, start_row_index, nu
     ty.sleep(1)
 
 
-def input_to_TR_report_spreadsheet(site, issue_log_time, log_repair_time, issue_repair_time, average_open, longest_open, longest_open_wo, fastest_repair, fastest_repair_wo, open_wos, completed_wos, stow_count, service):
+def input_to_TR_report_spreadsheet(site, issue_log_time, log_repair_time, issue_repair_time, average_open, longest_open, longest_open_wo, fastest_repair, fastest_repair_wo, open_wos, completed_wos, stow_count, open_non_stow_count, kwh_loss_sum, service):
     print(f"Updating Sheet: {site}")
+    TR_NUM_SHEET_ID = "1EzgmTCAAkCuOIVVRTUtNOp_jXdZpT7Hob-DUhEuYmrE"
+    cell_mapping = {
+        "BISHOPVILLE": "D2",
+        "Bluebird": "D3",
+        "Bulloch 1A": "D4",
+        "Bulloch 1B": "D5",
+        "Cardinal": "D6",
+        "Cherry Blossom": "D7",
+        "Conetoe 1": "D8",
+        "Elk": "D9",
+        "Freight Line": "D10",
+        "Gray Fox": "D11",
+        "Harding": "D12",
+        "Hayes": "D13",
+        "Hickory": "D14",
+        "HICKSON": "D15",
+        "Holly Swamp": "D16",
+        "JEFFERSON": "D17",
+        "LongLeaf Pine Solar": "D18",
+        "Marshall": "D19",
+        "Mclean": "D20",
+        "OGBURN": "D21",
+        "PG Solar": "D22",
+        "Richmond Cadle": "D23",
+        "Shorthorn": "D24",
+        "Sunflower": "D25",
+        "Tedder": "D26",
+        "Thunderhead": "D27",
+        "Upson": "D28",
+        "Van Buren": "D29",
+        "Washington": "D30",
+        "Whitehall": "D31",
+        "Whitetail": "D32",
+        "WILLIAMS": "D33",
+    }
+
+    if site in cell_mapping:
+        try:
+            target_cell = cell_mapping[site]
+            summary_tab_name = "OverView" # <--- CHECK THIS: Change if your summary tab has a different name
+            summary_range = f"'{summary_tab_name}'!{target_cell}"
+            
+            # Write the open_non_stow_count to the target cell
+            service.spreadsheets().values().update(
+                spreadsheetId=TR_NUM_SHEET_ID,
+                range=summary_range,
+                valueInputOption='RAW',
+                body={'values': [[int(open_non_stow_count)]]}
+            ).execute()
+            print(f" -> Updated Summary Count ({open_non_stow_count}) for {site} in cell {target_cell}")
+            ty.sleep(1)
+        except Exception as e:
+            print(f" -> Error updating Summary Sheet for {site}: {e}")
+    else:
+        print(f" -> Site '{site}' not found in cell_mapping. Skipping summary update.")
+    
+
+
     
     open_wo_count = len(open_wos)
     sheet_service = service.spreadsheets()
@@ -1222,8 +1415,8 @@ def input_to_TR_report_spreadsheet(site, issue_log_time, log_repair_time, issue_
             format_timedelta(average_open),
             format_timedelta(longest_open),
             longest_open_wo_val,
-            format_timedelta(fastest_repair),
-            fastest_repair_wo_val,
+            "",
+            f"{int(kwh_loss_sum)} kWh" if kwh_loss_sum is not None else "N/A",
             int(stow_count)
         ]
     ]
@@ -1256,7 +1449,7 @@ def input_to_TR_report_spreadsheet(site, issue_log_time, log_repair_time, issue_
     
     # Write new "Open Work Orders" data.
     if not open_wos.empty:
-        open_wos_to_sheet = open_wos[['WO No.', 'Start Date Time', 'WO Date', 'Sched. Completion Date', 'Duration', 'Brief Description']].copy()
+        open_wos_to_sheet = open_wos[['WO No.', 'Start Date Time', 'WO Date', 'Sched. Completion Date', 'Duration', 'KWH Loss', 'Brief Description']].copy()
         open_wos_to_sheet['WO Date'] = pd.to_datetime(open_wos_to_sheet['WO Date']).dt.strftime('%Y-%m-%d')
         open_wos_to_sheet['Start Date Time'] = pd.to_datetime(open_wos_to_sheet['Start Date Time']).dt.strftime('%Y-%m-%d %H:%M')
         open_wos_to_sheet['Sched. Completion Date'] = pd.to_datetime(open_wos_to_sheet['Sched. Completion Date']).dt.strftime('%Y-%m-%d')
@@ -1274,7 +1467,8 @@ def process_TR_report_wos(file_path, creds):
     service = build('sheets', 'v4', credentials=creds)
     spreadsheet_metadata = service.spreadsheets().get(spreadsheetId=TR_REPORT_SHEET_ID).execute()
     valid_sites = {s.get('properties', {}).get('title') for s in spreadsheet_metadata.get('sheets', [])}
-    print("Start! Trakcer Report")
+    print("Start! Tracker Report")
+    c, dbconnection = connect_db()
 
     df = pd.read_excel(file_path, sheet_name='Sheet1')
 
@@ -1288,6 +1482,10 @@ def process_TR_report_wos(file_path, creds):
 
         completed_wos = site_df[site_df['Job Status'].isin(['Complete', 'Closed'])].copy()
         open_wos = site_df[~site_df['Job Status'].isin(['Complete', 'Closed'])].copy()
+
+        open_non_stow_count = open_wos[
+            ~open_wos['Brief Description'].str.lower().str.contains('stow', na=False)
+        ].shape[0]
 
         durations = []
         log_delays = []
@@ -1402,6 +1600,111 @@ def process_TR_report_wos(file_path, creds):
             else:
                 open_durations.append(None)
         
+        # Calculate KWH Loss for Open WOs
+        open_kwh_losses = []
+        total_kwh_loss = 0
+        
+        clean_sheet_name = site.replace(", LLC", "").replace(" Solar", "").replace(" Farm", "").strip()
+        emaint_site_to_AE_site = {
+            "BISHOPVILLE": "Bishopville II",
+            "Conetoe 1": "Conetoe",
+            "HICKSON": "Hickson",
+            "JEFFERSON": "Jefferson",
+            "OGBURN": "Ogburn",
+            "Richmond Cadle": "Richmond",
+            "WILLIAMS": "Williams",
+        }
+        if clean_sheet_name in emaint_site_to_AE_site:
+            clean_sheet_name = emaint_site_to_AE_site[clean_sheet_name]
+        table_name = f"[{clean_sheet_name} Tracker Loss Data]"
+        
+        # Get columns from DB to match tracker names
+        try:
+            c.execute(f"SELECT TOP 0 * FROM {table_name}")
+            db_columns = [column[0] for column in c.description]
+        except Exception as e:
+            print(f"Error fetching columns for {site}: {e}")
+            db_columns = []
+
+        def find_ae_col_from_manu(manu_id, site_map, columns):
+            # Recursive search for manu_id in site_map
+            def search_map(m_id, mapping, prefix=""):
+                for k, v in mapping.items():
+                    if isinstance(v, dict):
+                        res = search_map(m_id, v, prefix=f"{k} ")
+                        if res: return res
+                    else:
+                        # Check match
+                        if str(v) == m_id:
+                            return (prefix, k)
+                        # Check partial match for strings like "41 S2" matching "41"
+                        if isinstance(v, str) and m_id in v.split():
+                            return (prefix, k)
+                return None
+
+            found = search_map(manu_id, site_map)
+            if found:
+                prefix, ae_num = found
+                search_str = str(ae_num)
+                candidates = columns
+                if prefix:
+                    p = prefix.strip()
+                    candidates = [c for c in candidates if p in c]
+                
+                for col in candidates:
+                    if f" {search_str}" in col or col.endswith(f" {search_str}") or col == search_str:
+                        return col
+            return None
+
+        for index, row in open_wos.iterrows():
+            loss = 0
+            s_dt = open_start_datetimes[len(open_kwh_losses)] # Get corresponding start date
+            
+            if s_dt and db_columns:
+                desc = str(row['Brief Description']) + " " + str(row['Asset Description'])
+                # Find tracker number in description
+                did_match = re.search(r'DID ending(?: in)?\s*#?\s*(\d+)', desc, re.IGNORECASE)
+                zone_match = re.search(r'(?:ZC|NCU|Zone)\s*#?\s*(\d+)', desc, re.IGNORECASE)
+
+                if did_match:
+                    tracker_num = did_match.group(1)
+                else:
+                    tracker_match = re.search(r'(?:Tracker|Row|TCU|NCU|Zone)\s*:?\s*#?\s*(\d+(?:\.\d+)?)', desc, re.IGNORECASE)
+                    tracker_num = tracker_match.group(1) if tracker_match else None
+
+                if tracker_num:
+                    
+                    matched_col = None
+                    if site in ae_to_manu_dict:
+                        matched_col = find_ae_col_from_manu(tracker_num, ae_to_manu_dict[site], db_columns)
+                    
+                    if not matched_col:
+                        # Fallback: Look for column that ends with the number or contains "Tracker {num}"
+                        candidates = db_columns
+                        if zone_match and ("Bishopville" in site or "Jefferson" in site):
+                            zone_num = zone_match.group(1)
+                            candidates = [col for col in db_columns if f"Zone {zone_num}" in col]
+
+                        if "Hickory" in site:
+                            matched_col = next((col for col in candidates if re.search(rf"Tilt_{tracker_num}_", col, re.IGNORECASE)), None)
+
+                        if not matched_col:
+                            matched_col = next((col for col in candidates if f" {tracker_num}" in col or col == tracker_num), None)
+                    
+                    if matched_col:
+                        try:
+                            query = f"SELECT SUM([{matched_col}]) FROM {table_name} WHERE [Timestamp] >= ?"
+                            c.execute(query, s_dt)
+                            result = c.fetchone()
+                            if result and result[0]:
+                                loss = result[0]
+                        except Exception as e:
+                            print(f"Error querying loss for {site} {matched_col}: {e}")
+            
+            open_kwh_losses.append(round(loss, 2))
+            total_kwh_loss += loss
+
+        open_wos['KWH Loss'] = open_kwh_losses
         open_wos['Work Description'] = open_clean_descriptions
         open_wos['Start Date Time'] = open_start_datetimes
         open_wos['Duration'] = open_durations
@@ -1445,7 +1748,11 @@ def process_TR_report_wos(file_path, creds):
             open_wos=open_wos,
             completed_wos=completed_wos,
             stow_count=stow_count,
+            open_non_stow_count=open_non_stow_count,
+            kwh_loss_sum=total_kwh_loss,
             service=service
         )
+    
+    dbconnection.close()
     if dt.datetime.now().weekday() < 2: #Monday and Tuesday
         email_pdf_reports(creds) 

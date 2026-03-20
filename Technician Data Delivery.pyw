@@ -15,12 +15,14 @@ from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseDownload
 import io
 
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(parent_dir)
-from PythonTools import EMAILS, CREDS, TRACKER_MAPPING, CB_ISSUES_SHEET, get_google_credentials
+from PythonTools import EMAILS, CREDS, TRACKER_MAPPING, CB_ISSUES_SHEET, INV_PERFORMANCE_SHEET, get_google_credentials
+from PerformanceDataUtils import get_performance_sites_list
 
 
-def send_email(recipient_email, site_name, attachment_paths):
+
+def send_email(recipient_email, site_name, attachment_paths, tracker_link=None):
     """Sends an email with the requested data as PDF attachments."""
     sender_email = EMAILS['NCC Desk']
     smtp_password = CREDS['shiftsumEmail']
@@ -42,7 +44,10 @@ def send_email(recipient_email, site_name, attachment_paths):
             <p>Attached is the requested data for {site_name} for {date_str}.</p>
             <p>This is an accurate example of the final output, sent to technicians scheduled for repairs/troubleshooting.<br>
             All feed back is welcomed!</p>
-
+    """
+    if tracker_link:
+        body += f'<p>Live Tracker Map: <a href="{tracker_link}">Click Here</a></p>'
+    body += """
             <p>Thank you,<br>NCC Automation</p>
         </body>
     </html>
@@ -78,12 +83,13 @@ def download_and_send():
     site = site_var.get()
     get_tracker_map = tracker_map_var.get()
     get_cb_list = cb_underperformance_var.get()
+    get_inv_perf = inv_underperformance.get()
 
     if not technician or not site:
         messagebox.showwarning("Selection Missing", "Please select both a technician and a site.")
         return
 
-    if not get_tracker_map and not get_cb_list:
+    if not get_tracker_map and not get_cb_list and not get_inv_perf:
         messagebox.showwarning("Selection Missing", "Please select at least one report to send.")
         return
 
@@ -97,6 +103,7 @@ def download_and_send():
     sheets_service = build('sheets', 'v4', credentials=creds)
 
     attachment_paths = []
+    tracker_link = None
     date_str = datetime.now().strftime("%Y-%m-%d")
     download_dir = os.path.join(os.path.expanduser("~"), "Downloads")
 
@@ -107,6 +114,7 @@ def download_and_send():
         if not tracker_spreadsheet_id:
             messagebox.showerror("Error", f"Could not find Tracker Map spreadsheet ID for {site}.")
         else:
+            tracker_link = f"https://docs.google.com/spreadsheets/d/{tracker_spreadsheet_id}"
             file_path = os.path.join(download_dir, f"{site}_tracker_map_{date_str}.pdf")
             try:
                 request = drive_service.files().export_media(fileId=tracker_spreadsheet_id,
@@ -160,9 +168,44 @@ def download_and_send():
         except requests.exceptions.RequestException as error:
             messagebox.showerror("Download Error", f"An error occurred downloading the CB Underperformance PDF: {error}")
 
-    # 3. Send the email with all collected attachments
+    # 3. Handle Inverter Performance List
+    if get_inv_perf:
+        inv_spreadsheet_id = INV_PERFORMANCE_SHEET
+        file_path = os.path.join(download_dir, f"{site}_INV_Performance_{date_str}.pdf")
+
+        try:
+            # Find the gid of the sheet matching the site name
+            sheet_metadata = sheets_service.spreadsheets().get(spreadsheetId=inv_spreadsheet_id).execute()
+            gid = None
+            for s in sheet_metadata.get('sheets', []):
+                if s.get('properties', {}).get('title') == site:
+                    gid = s.get('properties', {}).get('sheetId')
+                    break
+            
+            if gid is not None:
+                # Use requests to download the specific sheet as a PDF
+                headers = {'Authorization': 'Bearer ' + creds.token}
+                url = f'https://docs.google.com/spreadsheets/d/{inv_spreadsheet_id}/export?format=pdf&gid={gid}'
+                
+                print(f"Downloading INV Performance PDF for {site}...")
+                res = requests.get(url, headers=headers)
+                res.raise_for_status()
+                
+                with open(file_path, 'wb') as f:
+                    f.write(res.content)
+                attachment_paths.append(file_path)
+                print(f"Successfully downloaded INV Performance PDF for {site}.")
+
+            else:
+                messagebox.showerror("Error", f"Sheet '{site}' not found in the INV Performance workbook.")
+        except HttpError as error:
+            messagebox.showerror("API Error", f"An error occurred with Google Sheets API: {error}")
+        except requests.exceptions.RequestException as error:
+            messagebox.showerror("Download Error", f"An error occurred downloading the INV Performance PDF: {error}")
+
+    # 4. Send the email with all collected attachments
     if attachment_paths:
-        send_email(recipient_email, site, attachment_paths)
+        send_email(recipient_email, site, attachment_paths, tracker_link)
     else:
         messagebox.showinfo("No Files", "No files were downloaded to be sent. Check for previous errors.")
 
@@ -179,15 +222,15 @@ tech_var = tk.StringVar()
 tech_dropdown = ttk.Combobox(main_frame, textvariable=tech_var, state="readonly")
 tech_dropdown['values'] = sorted([
     "Administrators + NCC","Isaac Million", "Jon Wieber", "Joseph Lang", "Parker Wilson", 
-    "Thomas Rhodes", "Thorne Locklear", "Zach Duggan"
-])
+    "Thomas Rhodes", "Thorne Locklear", "Zach Duggan", "Newman Segars", 
+    "Jacob Budd", "Jayme Orrock"])
 tech_dropdown.grid(column=1, row=0, sticky=(tk.W, tk.E), pady=5, padx=5)
 
 # Site Dropdown
 ttk.Label(main_frame, text="Select Site:").grid(column=0, row=1, sticky=tk.W, pady=5)
 site_var = tk.StringVar()
 site_dropdown = ttk.Combobox(main_frame, textvariable=site_var, state="readonly")
-site_dropdown['values'] = sorted(list(TRACKER_MAPPING.keys()))
+site_dropdown['values'] = sorted(get_performance_sites_list(get_google_credentials()))
 site_dropdown.grid(column=1, row=1, sticky=(tk.W, tk.E), pady=5, padx=5)
 
 # Checkbuttons for what to send
@@ -196,12 +239,17 @@ check_frame.grid(column=0, row=2, columnspan=2, sticky=tk.W, pady=5)
 
 tracker_map_var = tk.BooleanVar(value=True)
 cb_underperformance_var = tk.BooleanVar()
+inv_underperformance = tk.BooleanVar()
+
 
 tracker_map_check = ttk.Checkbutton(check_frame, text="Tracker Map", variable=tracker_map_var)
 tracker_map_check.pack(side=tk.LEFT, padx=5)
 
 cb_underperformance_check = ttk.Checkbutton(check_frame, text="CB Underperformance", variable=cb_underperformance_var)
 cb_underperformance_check.pack(side=tk.LEFT, padx=5)
+
+inv_performance_check = ttk.Checkbutton(check_frame, text="Inverter Performance", variable=inv_underperformance)
+inv_performance_check.pack(side=tk.LEFT, padx=5)
 
 # Send Button
 send_button = ttk.Button(main_frame, text="Download and Send Email", command=download_and_send)

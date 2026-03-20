@@ -205,7 +205,7 @@ INVERTER_GROUPS = {
         '95 Limit': {8, 9, 10, 11, 12, 13, 14, 29, 30, 31, 32, 33, 34, 35, 48, 49, 50, 51, 52, 53},
         '96 Limit': {1, 2, 3, 4, 5, 6, 7, 22, 23, 24, 25, 26, 27, 28, 43, 44, 45, 46, 47},
     },
-    'Cougar': {
+    'Cougar Solar, LLC': {
         '14 String': {"1-1", "1-2", "1-3", "1-4", "1-5", "2-1", "2-2", "2-3", "2-4", "2-5", "2-6", "3-1", "3-2", "3-3", "3-4", "3-5", "4-1", "4-2", "4-3", "4-4", "4-5", "5-1", "5-4", "5-5", "6-1", "6-2", "6-3", "6-4", "6-5"},
         '13 String': {"5-2", "5-3"},
     },
@@ -233,7 +233,7 @@ INVERTER_GROUPS = {
         '16 String': {1, 8, 9, 10, 11, 16, 17, 21, 40, 41, 42},
     },
     'Hayes': {
-        '16 String': {5, 6, 7, 9, 18, 19, 20, 21},
+        '16 String': {5, 6, 7, 8, 9, 18, 19, 20, 21, 22},
         '15 String': {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 16, 17, 23, 24, 25, 26},
     },
     'Hickson': {
@@ -288,19 +288,19 @@ INVERTER_GROUPS = {
         '16 String': {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 21, 22, 23, 24, 25, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 49, 50, 51, 57, 61, 62, 63, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80},
         '17 String': {13, 14, 15, 16, 17, 18, 19, 20, 26, 27, 28, 29, 30, 31, 43, 44, 45, 46, 47, 48, 52, 53, 54, 55, 56, 58, 59, 60, 64},
     },
-    'Williams': {
+    'Williams Solar, LLC': {
         '11 String': {"A1", "A2", "A3", "A5", "A7", "A12", "A13", "A14", "A15", "A16", "A17", "A18", "A19", "A20", "B1", "B2", "B3", "B4", "B5", "B6", "B7", "B11", "B12", "B13", "B14", "B15", "B16", "B17", "B18", "B19"},
         '10 String': {"A4", "A6", "A8", "A9", "A10", "A11", "B8", "B9", "B10", "B20"},
     }
 }
 
 SITE_DATA = {
-    'Bishopville II':{
+    'Bishopville II Solar':{
         'GHI': 'Hukseflux SR30 - POA (PY0) [Sun] (GHI)',
         'POA': 'Hukseflux SR30 - POA (PY0) [Sun] (POA)',
         'inv_num': 36,
     }, 
-    'Bluebird':{
+    'Bluebird Solar':{
         'GHI': 'Kipp & Zonen SMP-6 (GHI) (GHI)',
         'POA': 'Kipp & Zonen SMP-6 (POA) (POA)',
         'inv_num': 24,
@@ -319,20 +319,18 @@ SITE_DATA = {
         'GHI': 'Hukseflux SR30 GHI (RMA11424) (GHI)',
         'POA': 'Hukesflux SR30 POA (POA)',
         'inv_num': 59,
-
     },
-    'Cherry Blossom':{
+    'Cherry Blossom Solar, LLC':{
         'GHI': 'Weather Station 3 (Dual Mod Temp) (GHI)',
         'POA': 'Weather Station 3 (Dual Mod Temp) (POA)',
         'inv_num': 4,
-
     },
     'Conetoe':{
         'GHI': None,
         'POA': None,
         'inv_num': 16,
     },
-    'Cougar':{
+    'Cougar Solar, LLC':{
         'GHI': 'Reference Cell (POA, GHI)',
         'POA': 'KZPOA (POA, GHI)',
         'inv_num': 31,
@@ -340,29 +338,29 @@ SITE_DATA = {
     'Duplin':{
         'GHI': 'Weather Station (POA GHI) (GHI)',
         'POA': 'Weather Station (POA GHI) (POA)',
-        'inv_num': 18,
+        'inv_num': 21,
     },
-    'Elk':{
+    'Elk Solar':{
         'GHI': 'Weather Station (GHI)',
         'POA': 'Weather Station (POA)',
         'inv_num': 43,
     },
-    'Freight Line':{
+    'Freight Line Solar':{
         'GHI': 'Kipp & Zonen SMP6 - GHI (GHI)',
         'POA': 'Kipp & Zonen SMP6 - POA (GHI)',
         'inv_num': 18,
     },
-    'Gray Fox':{
+    'Gray Fox Solar':{
         'GHI': 'PYRANOMETER - GHI [Sun2] (GHI)',    
         'POA': 'PYRANOMETER - GHI [Sun2] (POA)',
         'inv_num': 40,
     },
-    'Harding':{
+    'Harding Solar':{
         'GHI': 'PYRANOMETER - GHI (GHI)',
         'POA': 'PYRANOMETER - POA (POA)',
         'inv_num': 24,
     },
-    'Harrison':{
+    'Harrison Solar':{
         'GHI': 'Hukseflux SR-30 GHI (GHI)',
         'POA': 'Huksaflux SR-30 POA UP (POA)',
         'inv_num': 43,
@@ -372,32 +370,32 @@ SITE_DATA = {
         'POA': 'Albedometer POA (POA Sensor)',
         'inv_num': 26,
     },
-    'Hickory':{
+    'Hickory Solar, LLC':{
         'GHI': 'Weather Station Modbus 17 (Hukseflux GHI w/ Mod Temp)# (GHI)',
         'POA': 'Weather Station Modbus 17 (Hukseflux GHI w/ Mod Temp)# (POA)',
         'inv_num': 2,
     },
-    'Hickson':{
+    'Hickson Solar Farm':{
         'GHI': 'Hukseflux SR05 (GHI) (GHI)',
         'POA': 'Hukseflux SR05 (POA) (POA)',
         'inv_num': 16,
     },
-    'Holly Swamp':{
+    'Holly Swamp Solar':{
         'GHI': 'Kipp & Zonen SMP6 - GHI (GHI)',
         'POA': 'Kipp & Zonen SMP6 - POA (POA)',
         'inv_num': 16,
     },
-    'Jefferson':{
+    'Jefferson Solar':{
         'GHI': 'Hukseflux SR05 - GHI (GHI)',
         'POA': 'Hukseflux SR05 - GHI (POA)',
         'inv_num': 64,
     },
-    'Longleaf Pine':{
+    'Longleaf Pine Solar, LLC':{
         'GHI': 'PYRANOMETER - GHI (GHI)',
         'POA': 'PYRANOMETER - POA (POA)',
         'inv_num': 40,
     },
-    'Marshall':{
+    'Marshall Solar':{
         'GHI': 'Hukseflux SR05 GHI (GHI)',
         'POA': 'Hukseflux SR05 POA (POA)',
         'inv_num': 16,
@@ -407,12 +405,12 @@ SITE_DATA = {
         'POA': 'PYRANOMETER - POA (PY1) (SO84054) (POA)',
         'inv_num': 40,
     },
-    'Ogburn':{
+    'Ogburn Solar Farm':{
         'GHI': 'Hukseflux SR05 (GHI) (GHI)',
         'POA': 'Hukseflux SR05 (POA) (POA)',
         'inv_num': 16,
     },
-    'PG':{
+    'PG Solar':{
         'GHI': 'Kipp & Zonen SMP6 - GHI (POA, GHI)',
         'POA': 'Kipp & Zonen SMP6 - POA (POA, GHI)',
         'inv_num': 18,
@@ -427,17 +425,17 @@ SITE_DATA = {
         'POA': 'PYRANOMETER - POA (POA)',
         'inv_num': 72,
     },
-    'Sunflower':{
+    'Sunflower Solar':{
         'GHI': 'PYRANOMETER - GHI (PY0) (GHI)',
         'POA': 'PYRANOMETER - POA (PY1) (POA)',
         'inv_num': 80,
     },
-    'Tedder':{
+    'Tedder Solar':{
         'GHI': 'Kipp & Zonen SMP-12 (GHI) - PY1 (GHI)',
         'POA': 'Kipp & Zonen SMP-12 (POA) - PY0 (POA)',
         'inv_num': 16,
     },  
-    'Thunderhead':{
+    'Thunderhead Solar':{
         'GHI': 'Hukseflux SR05 (GHI) (GHI)',
         'POA': 'Hukseflux SR05 (GHI) (POA)',
         'inv_num': 16,
@@ -447,12 +445,12 @@ SITE_DATA = {
         'POA': 'Kipp & Zonen SMP-12 (POA) - PY0 (POA)',
         'inv_num': 24,
     },  
-    'Van Buren':{
+    'Van Buren Solar':{
         'GHI': 'Hukseflux SR30 - GHI (SO38592) (GHI)',
         'POA': 'Hukseflux SR30 - POA (SO38592) (POA)',
         'inv_num': 17,
     },  
-    'Violet':{
+    'Violet Solar, LLC':{
         'GHI': 'KZ POA (GHI)',
         'POA': 'KZ POA (POA)',
         'inv_num': 2,
@@ -462,7 +460,7 @@ SITE_DATA = {
         'POA': 'Hukseflux SR30 POA (POA)',
         'inv_num': 32,
     },
-    'Washington':{
+    'Washington Solar':{
         'GHI': 'PYRANOMETER - GHI (GHI)',
         'POA': 'PYRANOMETER - POA (POA)',
         'inv_num': 40,  
@@ -482,12 +480,12 @@ SITE_DATA = {
         'POA': 'Weather Station (POA GHI) (POA)',
         'inv_num': 4,
     },
-    'Wellons':{
+    'Wellons Solar, LLC':{
         'GHI': 'Weather Station GHI & POA (GHI)',
         'POA': 'Weather Station POA (POA)',
         'inv_num': 6,
     }, 
-    'Whitehall':{
+    'Whitehall Solar':{
         'GHI': 'PYRANOMETER - GHI (GHI)',
         'POA': 'PYRANOMETER - POA (POA)',
         'inv_num': 16,
@@ -497,7 +495,7 @@ SITE_DATA = {
         'POA': 'Hukseflux SR-30 - POA (POA)',
         'inv_num': 80,
     }, 
-    'Williams':{
+    'Williams Solar, LLC':{
         'GHI': 'PYRANOMETER - GHI (GHI)',
         'POA': 'PYRANOMETER - POA (POA)',
         'inv_num': 40,
@@ -637,7 +635,7 @@ def update_cb_sheet(metrics, credentials):
 
         # Sort by group (first digit), then by the maximum of the three loss columns (descending), then by combiner box name (ascending)
         cb_data_for_sorting.sort(key=lambda x: (
-            natural_sort_key(x['cb_name'])[0],
+            natural_sort_key(x['cb_name'])[1],
             -max(
                 (x['sum_loss'] if x['sum_loss'] is not None and not np.isnan(x['sum_loss']) else -1),
                 (x['peak_loss'] if x['peak_loss'] is not None and not np.isnan(x['peak_loss']) else -1),
@@ -752,7 +750,7 @@ def process_cb_file(file_path, credentials):
         df.dropna(subset=[timestamp_col], inplace=True)
 
         # Filter for peak production hours (9am to 5pm)
-        peak_dataframe = df[(df[timestamp_col].dt.hour >= 9) & (df[timestamp_col].dt.hour <= 17)].copy()
+        peak_dataframe = df[(df[timestamp_col].dt.hour >= 10) & (df[timestamp_col].dt.hour <= 15)].copy()
         if peak_dataframe.empty:
             print(f"No data for peak hours in {sheet_name}. Skipping.")
             continue
@@ -760,7 +758,7 @@ def process_cb_file(file_path, credentials):
         # Create sum_dataframe for the last 5 days
         max_date = peak_dataframe[timestamp_col].max()
         last_5_days_start_date = max_date - pd.Timedelta(days=5)
-        sum_dataframe = peak_dataframe[peak_dataframe[timestamp_col] >= last_5_days_start_date].copy()
+        sum_dataframe = df[df[timestamp_col] >= last_5_days_start_date].copy()
 
         # Identify all combiner box columns
         cb_columns = [col for col in df.columns[1:] if 'dc_' in col or 'CB' in col or '.' in col or 'INV' in col]
@@ -921,7 +919,7 @@ def update_performance_sheet(metrics, credentials):
             print(f"Successfully updated average performance ratios for {site_name} in range {range_to_update}.")
             ty.sleep(1)
             # Now, add the timestamp at the end of the column
-            timestamp_cell = f'{site_name}!C{range_end + 1}'
+            timestamp_cell = f'{site_name}!C{max(SITE_DATA[site_name]["inv_num"] + 2, range_end + 1)}'
             timestamp_body = {'values': [[avg_peak_timestamp_str]]}
             service.spreadsheets().values().update(
                 spreadsheetId=INV_PERFORMANCE_SHEET,
@@ -960,7 +958,7 @@ def update_performance_sheet(metrics, credentials):
             ty.sleep(1)
 
             # Now, add the timestamp at the end of the column
-            timestamp_cell = f'{site_name}!D{range_end + 1}'
+            timestamp_cell = f'{site_name}!D{max(SITE_DATA[site_name]["inv_num"] + 2, range_end + 1)}'
             timestamp_body = {'values': [[abs_peak_timestamp_str]]}
             service.spreadsheets().values().update(
                 spreadsheetId=INV_PERFORMANCE_SHEET,
@@ -1002,7 +1000,6 @@ def process_INV_performance_xlsx(file_path, credentials):
         # Added Wayne sites as they have very few inverters and can skew averages.
         if sheet_name in {"Sheet 1", "Charlotte Airport", "Wayne 1", "Wayne 2", "Wayne 3"}:
             continue  # Skip sheets that we can't determine perfomance metircs based on average due to minimal data. Small Inv Groups            
-        clean_sheet_name = sheet_name.replace(" Solar", "").replace(", LLC", "").replace(" Farm", "")
         dataframe = pd.read_excel(xls, sheet_name=sheet_name, skiprows=2)
         #print(f"Created DataFrame for sheet: {sheet_name}")
         timestamp_col = dataframe.columns[0]
@@ -1013,37 +1010,52 @@ def process_INV_performance_xlsx(file_path, credentials):
 
         # New filtering logic
         # Prioritize POA, then GHI, then fall back to time.
-        poa = SITE_DATA.get(clean_sheet_name, {}).get('POA')
-        ghi = SITE_DATA.get(clean_sheet_name, {}).get('GHI')
+        poa = SITE_DATA.get(sheet_name, {}).get('POA')
+        ghi = SITE_DATA.get(sheet_name, {}).get('GHI')
 
         # Initialize conditions to False
         poa_condition = pd.Series([False] * len(dataframe), index=dataframe.index)
         ghi_condition = pd.Series([False] * len(dataframe), index=dataframe.index)
 
         if poa and poa in dataframe.columns:
-            poa_condition = pd.to_numeric(dataframe[poa], errors='coerce') >= 200
+            poa_condition = pd.to_numeric(dataframe[poa], errors='coerce') >= 400
         if ghi and ghi in dataframe.columns:
-            ghi_condition = pd.to_numeric(dataframe[ghi], errors='coerce') >= 150
+            ghi_condition = pd.to_numeric(dataframe[ghi], errors='coerce') >= 300
 
-        time_condition = (dataframe[timestamp_col].dt.hour >= 9) & (dataframe[timestamp_col].dt.hour <= 15)
+        time_condition = (dataframe[timestamp_col].dt.hour >= 10) & (dataframe[timestamp_col].dt.hour <= 15)
 
         # 1. Identify inverter data columns based on SITE_DATA
-        inv_num = SITE_DATA.get(clean_sheet_name, {}).get('inv_num', 0)
+        inv_num = SITE_DATA.get(sheet_name, {}).get('inv_num', 0)
         inverter_data_columns = dataframe.columns[1:inv_num+1]
 
         for col in inverter_data_columns:
             dataframe[col] = pd.to_numeric(dataframe[col], errors='coerce')
 
-        # Apply filters in order of priority
-        # A row is kept if it meets any of these conditions.
-        peak_dataframe = dataframe[
-            poa_condition |
-            (~poa_condition & ghi_condition) |
-            (~(poa_condition | ghi_condition) & time_condition)
-        ].copy()
+        #print(sheet_name," | ", dataframe.columns[1:inv_num+1])
+        # Time is hard and fast.
+        use_poa = False
+        if poa and poa in dataframe.columns:
+            if (time_condition & poa_condition).any():
+                use_poa = True
 
-        # The dataframe is already filtered for peak production hours.
-        # Now, filter this dataframe to get the last 5 days of data.
+        use_ghi = False
+        if not use_poa and ghi and ghi in dataframe.columns:
+            if (time_condition & ghi_condition).any():
+                use_ghi = True
+
+        if use_poa:
+            peak_dataframe = dataframe[time_condition & poa_condition].copy()
+        elif use_ghi:
+            peak_dataframe = dataframe[time_condition & ghi_condition].copy()
+        else:
+            peak_dataframe = dataframe[time_condition].copy()
+        
+        #print(sheet_name," | ", peak_dataframe.columns[1:inv_num+1])
+
+        if peak_dataframe.empty:
+            print(f"No data found for {sheet_name} after filtering. Skipping.")
+            continue
+
         sum_dataframe = peak_dataframe.copy()
         max_date = sum_dataframe[timestamp_col].max()
         #print(f"Max date in sheet '{sheet_name}': {max_date}")
@@ -1054,9 +1066,9 @@ def process_INV_performance_xlsx(file_path, credentials):
         sum_dataframe = sum_dataframe[sum_dataframe[timestamp_col] >= last_week_start_date]
 
         #print(sum_dataframe.head())
-        
         # 2. Check if the remaining columns exist or have data
         if inverter_data_columns.empty:
+            print(f"{inverter_data_columns}")
             # This covers the case where the sheet only had the timestamp column and nothing else.
             print(f"Skipping sheet '{sheet_name}' as no inv data found.")
             continue
@@ -1068,6 +1080,7 @@ def process_INV_performance_xlsx(file_path, credentials):
         # 3. Calculate the row-wise average across ONLY the inverter columns
         # axis=1 specifies a row-wise operation
         peak_dataframe['Inverter_Row_Average'] = peak_dataframe[inverter_data_columns].mean(axis=1)
+        
         # 3. Find the row (index) with the maximum 'Inverter_Row_Average' value
         max_avg_index = peak_dataframe['Inverter_Row_Average'].idxmax()
         if pd.isna(max_avg_index) or np.isnan(max_avg_index):
@@ -1110,51 +1123,60 @@ def process_INV_performance_xlsx(file_path, credentials):
         }
 
         inverter_sums = {find_inverter_num(col): pd.to_numeric(sum_dataframe[col], errors='coerce').sum() for col in sum_dataframe.columns[1:inv_num+1]}
-        #if clean_sheet_name == 'Marshall':
-            #print(f"Inverter sums for {clean_sheet_name}: {inverter_sums}")
-        if clean_sheet_name in INVERTER_GROUPS:
-            performance_metrics[clean_sheet_name] = {}
-            performance_metrics[clean_sheet_name]['avg_peak_timestamp'] = avg_peak_timestamp
-            performance_metrics[clean_sheet_name]['abs_peak_timestamp'] = abs_peak_timestamp
-            for group_name, inverter_numbers_set in INVERTER_GROUPS[clean_sheet_name].items():
+        #if sheet_name == 'Marshall':
+            #print(f"Inverter sums for {sheet_name}: {inverter_sums}")
+        if sheet_name in INVERTER_GROUPS:
+            performance_metrics[sheet_name] = {}
+            performance_metrics[sheet_name]['avg_peak_timestamp'] = avg_peak_timestamp
+            performance_metrics[sheet_name]['abs_peak_timestamp'] = abs_peak_timestamp
+            for group_name, inverter_numbers_set in INVERTER_GROUPS[sheet_name].items():
                 group_sums = [inverter_sums.get(str(inv_num), 0) for inv_num in inverter_numbers_set]
                 max_sum = max(group_sums) if group_sums else 0
-                performance_metrics[clean_sheet_name][group_name] = max_sum if max_sum else 0
+                performance_metrics[sheet_name][group_name] = max_sum if max_sum else 0
                 for inv_num in inverter_numbers_set:
                     inv_sum = inverter_sums.get(str(inv_num), 0)
                     ratio = (inv_sum / max_sum) if max_sum > 0 else 0
-                    performance_metrics[clean_sheet_name][f"inverter_{inv_num}_ratio"] = ratio
+                    performance_metrics[sheet_name][f"inverter_{inv_num}_ratio"] = ratio
                 # --- Peak Ratio Calculation (NEW) ---
                 # Get the peak production for each inverter in the group
                 group_peaks = [inverter_peaks.get(str(inv_num), 0) for inv_num in inverter_numbers_set]
-                max_peak = max(group_peaks) if group_peaks else 0
+                # Filter out NaNs before calculating max
+                valid_peaks = [p for p in group_peaks if pd.notna(p)]
+                max_peak = max(valid_peaks) if valid_peaks else 0
 
                 # Store the max peak for the group
-                performance_metrics[clean_sheet_name][f"{group_name}_MaxPeak"] = max_peak
+                performance_metrics[sheet_name][f"{group_name}_MaxPeak"] = max_peak
 
                 # Calculate ratio for each inverter in the group based on the group's max peak
                 for inv_num in inverter_numbers_set:
                     inv_peak = inverter_peaks.get(str(inv_num), 0)
-                    peak_ratio = (inv_peak / max_peak) if max_peak > 0 else 0
-                    performance_metrics[clean_sheet_name][f"inverter_{inv_num}_peak_ratio"] = peak_ratio
+                    if pd.isna(inv_peak):
+                        peak_ratio = 0
+                    else:
+                        peak_ratio = (inv_peak / max_peak) if max_peak > 0 else 0
+                    performance_metrics[sheet_name][f"inverter_{inv_num}_peak_ratio"] = peak_ratio
 
                 # --- Absolute Peak Ratio Calculation (NEW) ---
                 # Get the absolute peak production for each inverter in the group
                 group_abs_peaks = [inverter_abs_peaks.get(str(inv_num), 0) for inv_num in inverter_numbers_set]
-                max_abs_peak = max(group_abs_peaks) if group_abs_peaks else 0
+                valid_abs_peaks = [p for p in group_abs_peaks if pd.notna(p)]
+                max_abs_peak = max(valid_abs_peaks) if valid_abs_peaks else 0
 
                 # Store the max absolute peak for the group
-                performance_metrics[clean_sheet_name][f"{group_name}_MaxAbsPeak"] = max_abs_peak
+                performance_metrics[sheet_name][f"{group_name}_MaxAbsPeak"] = max_abs_peak
 
                 # Calculate ratio for each inverter in the group based on the group's max absolute peak
                 for inv_num in inverter_numbers_set:
                     inv_abs_peak = inverter_abs_peaks.get(str(inv_num), 0)
-                    abs_peak_ratio = (inv_abs_peak / max_abs_peak) if max_abs_peak > 0 else 0
-                    performance_metrics[clean_sheet_name][f"inverter_{inv_num}_abs_peak_ratio"] = abs_peak_ratio
-        elif clean_sheet_name == "Duplin":
-            performance_metrics[clean_sheet_name] = {}
-            performance_metrics[clean_sheet_name]['avg_peak_timestamp'] = avg_peak_timestamp
-            performance_metrics[clean_sheet_name]['abs_peak_timestamp'] = abs_peak_timestamp
+                    if pd.isna(inv_abs_peak):
+                        abs_peak_ratio = 0
+                    else:
+                        abs_peak_ratio = (inv_abs_peak / max_abs_peak) if max_abs_peak > 0 else 0
+                    performance_metrics[sheet_name][f"inverter_{inv_num}_abs_peak_ratio"] = abs_peak_ratio
+        elif sheet_name == "Duplin":
+            performance_metrics[sheet_name] = {}
+            performance_metrics[sheet_name]['avg_peak_timestamp'] = avg_peak_timestamp
+            performance_metrics[sheet_name]['abs_peak_timestamp'] = abs_peak_timestamp
             central_inverters = {}
             central_inverter_peaks = {}
             central_counter = 1
@@ -1184,43 +1206,51 @@ def process_INV_performance_xlsx(file_path, credentials):
             for group_name, group_data in [("Central Inverters", central_inverters), ("String Inverters", string_inverters)]:
                 if group_data:
                     max_sum = max(group_data.values())
-                    performance_metrics[clean_sheet_name][group_name] = max_sum if max_sum else 0
+                    performance_metrics[sheet_name][group_name] = max_sum if max_sum else 0
                     for inv_num, inv_sum in group_data.items():
                         ratio = (inv_sum / max_sum) if max_sum > 0 else 0
                         # Adjust inverter number for string inverters to be unique
                         if group_name == "String Inverters":
                             inv_num += len(central_inverters)
-                        performance_metrics[clean_sheet_name][f"inverter_{inv_num}_ratio"] = ratio if ratio else 0
+                        performance_metrics[sheet_name][f"inverter_{inv_num}_ratio"] = ratio if ratio else 0
                 # --- Peak Ratio Calculation (NEW) ---
                 group_peaks = central_inverter_peaks if group_name == "Central Inverters" else string_inverter_peaks
                 if group_peaks:
-                    max_peak = max(group_peaks.values()) if group_peaks.values() else 0
-                    performance_metrics[clean_sheet_name][f"{group_name}_MaxPeak"] = max_peak
+                    valid_peaks = [p for p in group_peaks.values() if pd.notna(p)]
+                    max_peak = max(valid_peaks) if valid_peaks else 0
+                    performance_metrics[sheet_name][f"{group_name}_MaxPeak"] = max_peak
 
                     for inv_num, inv_peak in group_peaks.items():
-                        peak_ratio = (inv_peak / max_peak) if max_peak > 0 else 0
+                        if pd.isna(inv_peak):
+                            peak_ratio = 0
+                        else:
+                            peak_ratio = (inv_peak / max_peak) if max_peak > 0 else 0
                         # Adjust inverter number for string inverters to be unique
                         if group_name == "String Inverters":
                             inv_num += len(central_inverter_peaks)
-                        performance_metrics[clean_sheet_name][f"inverter_{inv_num}_peak_ratio"] = peak_ratio if peak_ratio else 0
+                        performance_metrics[sheet_name][f"inverter_{inv_num}_peak_ratio"] = peak_ratio if peak_ratio else 0
             # --- Absolute Peak Ratio Calculation (NEW) ---
             for group_name, group_abs_peaks in [("Central Inverters", central_inverter_abs_peaks), ("String Inverters", string_inverter_abs_peaks)]:
                 if group_abs_peaks:
-                    max_abs_peak = max(group_abs_peaks.values()) if group_abs_peaks.values() else 0
-                    performance_metrics[clean_sheet_name][f"{group_name}_MaxAbsPeak"] = max_abs_peak
+                    valid_abs_peaks = [p for p in group_abs_peaks.values() if pd.notna(p)]
+                    max_abs_peak = max(valid_abs_peaks) if valid_abs_peaks else 0
+                    performance_metrics[sheet_name][f"{group_name}_MaxAbsPeak"] = max_abs_peak
 
                     for inv_num, inv_abs_peak in group_abs_peaks.items():
-                        abs_peak_ratio = (inv_abs_peak / max_abs_peak) if max_abs_peak > 0 else 0
+                        if pd.isna(inv_abs_peak):
+                            abs_peak_ratio = 0
+                        else:
+                            abs_peak_ratio = (inv_abs_peak / max_abs_peak) if max_abs_peak > 0 else 0
                         # Adjust inverter number for string inverters to be unique
                         if group_name == "String Inverters":
                             inv_num += len(central_inverter_abs_peaks)
-                        performance_metrics[clean_sheet_name][f"inverter_{inv_num}_abs_peak_ratio"] = abs_peak_ratio if abs_peak_ratio else 0
-            #print(performance_metrics[clean_sheet_name])
+                        performance_metrics[sheet_name][f"inverter_{inv_num}_abs_peak_ratio"] = abs_peak_ratio if abs_peak_ratio else 0
+            #print(performance_metrics[sheet_name])
 
         elif sheet_name == "Conetoe":
-            performance_metrics[clean_sheet_name] = {}
-            performance_metrics[clean_sheet_name]['avg_peak_timestamp'] = avg_peak_timestamp
-            performance_metrics[clean_sheet_name]['abs_peak_timestamp'] = abs_peak_timestamp
+            performance_metrics[sheet_name] = {}
+            performance_metrics[sheet_name]['avg_peak_timestamp'] = avg_peak_timestamp
+            performance_metrics[sheet_name]['abs_peak_timestamp'] = abs_peak_timestamp
             # For Conetoe, sum parts like '1.1', '1.2' into a main inverter '1'
             main_inverter_sums = {}
             for inv_part, inv_sum in inverter_sums.items():
@@ -1234,11 +1264,11 @@ def process_INV_performance_xlsx(file_path, credentials):
                 # Now calculate ratios based on the summed values of main inverters
                 all_main_sums = list(main_inverter_sums.values())
                 max_sum = max(all_main_sums) if all_main_sums else 0
-                performance_metrics[clean_sheet_name]["All Inverters"] = max_sum
+                performance_metrics[sheet_name]["All Inverters"] = max_sum
 
                 for main_inv_num, total_sum in main_inverter_sums.items():
                     ratio = (total_sum / max_sum) if max_sum > 0 else 0
-                    performance_metrics[clean_sheet_name][f"inverter_{main_inv_num}_ratio"] = ratio
+                    performance_metrics[sheet_name][f"inverter_{main_inv_num}_ratio"] = ratio
             
             # --- Peak Ratio Calculation (NEW) ---
             main_inverter_peaks = {}
@@ -1247,16 +1277,17 @@ def process_INV_performance_xlsx(file_path, credentials):
                     main_inv_num = inv_part.split('.')[0]
                     if main_inv_num not in main_inverter_peaks:
                         main_inverter_peaks[main_inv_num] = 0
-                    main_inverter_peaks[main_inv_num] += inv_peak # Summing the peak production for parts
+                    if pd.notna(inv_peak):
+                        main_inverter_peaks[main_inv_num] += inv_peak # Summing the peak production for parts
 
             if main_inverter_peaks:
                 all_main_peaks = list(main_inverter_peaks.values())
                 max_peak = max(all_main_peaks) if all_main_peaks else 0
-                performance_metrics[clean_sheet_name]["All Inverters_MaxPeak"] = max_peak
+                performance_metrics[sheet_name]["All Inverters_MaxPeak"] = max_peak
 
                 for main_inv_num, total_peak in main_inverter_peaks.items():
                     peak_ratio = (total_peak / max_peak) if max_peak > 0 else 0
-                    performance_metrics[clean_sheet_name][f"inverter_{main_inv_num}_peak_ratio"] = peak_ratio
+                    performance_metrics[sheet_name][f"inverter_{main_inv_num}_peak_ratio"] = peak_ratio
             # --- Absolute Peak Ratio Calculation (NEW) ---
             main_inverter_abs_peaks = {}
             for inv_part, inv_abs_peak in inverter_abs_peaks.items():
@@ -1264,50 +1295,61 @@ def process_INV_performance_xlsx(file_path, credentials):
                     main_inv_num = inv_part.split('.')[0]
                     if main_inv_num not in main_inverter_abs_peaks:
                         main_inverter_abs_peaks[main_inv_num] = 0
-                    main_inverter_abs_peaks[main_inv_num] += inv_abs_peak # Summing the peak production for parts
+                    if pd.notna(inv_abs_peak):
+                        main_inverter_abs_peaks[main_inv_num] += inv_abs_peak # Summing the peak production for parts
 
             if main_inverter_abs_peaks:
                 all_main_abs_peaks = list(main_inverter_abs_peaks.values())
                 max_abs_peak = max(all_main_abs_peaks) if all_main_abs_peaks else 0
-                performance_metrics[clean_sheet_name]["All Inverters_MaxAbsPeak"] = max_abs_peak
+                performance_metrics[sheet_name]["All Inverters_MaxAbsPeak"] = max_abs_peak
                 for main_inv_num, total_abs_peak in main_inverter_abs_peaks.items():
                     abs_peak_ratio = (total_abs_peak / max_abs_peak) if max_abs_peak > 0 else 0
-                    performance_metrics[clean_sheet_name][f"inverter_{main_inv_num}_abs_peak_ratio"] = abs_peak_ratio
-            #print(performance_metrics[clean_sheet_name])
+                    performance_metrics[sheet_name][f"inverter_{main_inv_num}_abs_peak_ratio"] = abs_peak_ratio
+            #print(performance_metrics[sheet_name])
         # This block should only run for sites NOT in INVERTER_GROUPS.
         else:
+            
+            print(f"DEBUG: Site {sheet_name} falling back to 'All Inverters' group. Check INVERTER_GROUPS key.")
             # If the site is not in INVERTER_GROUPS and not an exception, treat all inverters as one group.
-            performance_metrics[clean_sheet_name] = {}
-            performance_metrics[clean_sheet_name]['avg_peak_timestamp'] = avg_peak_timestamp
-            performance_metrics[clean_sheet_name]['abs_peak_timestamp'] = abs_peak_timestamp
+            performance_metrics[sheet_name] = {}
+            performance_metrics[sheet_name]['avg_peak_timestamp'] = avg_peak_timestamp
+            performance_metrics[sheet_name]['abs_peak_timestamp'] = abs_peak_timestamp
             all_sums = list(inverter_sums.values())
             max_sum = max(all_sums) if all_sums else 0
-            performance_metrics[clean_sheet_name]["All Inverters"] = max_sum
-            #if clean_sheet_name == 'Marshall':
-            #    print(f"{clean_sheet_name} - All Inverters max sum: {max_sum}\n{all_sums}")
+            performance_metrics[sheet_name]["All Inverters"] = max_sum
+            #if sheet_name == 'Marshall':
+            #    print(f"{sheet_name} - All Inverters max sum: {max_sum}\n{all_sums}")
 
             for inv_num, inv_sum in inverter_sums.items():
                 ratio = (inv_sum / max_sum) if max_sum > 0 else 0
-                performance_metrics[clean_sheet_name][f"inverter_{inv_num}_ratio"] = ratio
-                #print(f"{clean_sheet_name} - Inverter {inv_num} sum: {inv_sum}, max:{max_sum}, ratio: {ratio}\n {len(list(performance_metrics[clean_sheet_name].items()))}")
+                performance_metrics[sheet_name][f"inverter_{inv_num}_ratio"] = ratio
+                #print(f"{sheet_name} - Inverter {inv_num} sum: {inv_sum}, max:{max_sum}, ratio: {ratio}\n {len(list(performance_metrics[sheet_name].items()))}")
 
             # --- Peak Ratio Calculation (NEW) ---
             all_peaks = list(inverter_peaks.values())
-            max_peak = max(all_peaks) if all_peaks else 0
-            performance_metrics[clean_sheet_name]["All Inverters_MaxPeak"] = max_peak
+            valid_peaks = [p for p in all_peaks if pd.notna(p)]
+            max_peak = max(valid_peaks) if valid_peaks else 0
+            performance_metrics[sheet_name]["All Inverters_MaxPeak"] = max_peak
 
             for inv_num, inv_peak in inverter_peaks.items():
-                peak_ratio = (inv_peak / max_peak) if max_peak > 0 else 0
-                performance_metrics[clean_sheet_name][f"inverter_{inv_num}_peak_ratio"] = peak_ratio
+                if pd.isna(inv_peak):
+                    peak_ratio = 0
+                else:
+                    peak_ratio = (inv_peak / max_peak) if max_peak > 0 else 0
+                performance_metrics[sheet_name][f"inverter_{inv_num}_peak_ratio"] = peak_ratio
 
             # --- Absolute Peak Ratio Calculation (NEW) ---
             all_abs_peaks = list(inverter_abs_peaks.values())
-            max_abs_peak = max(all_abs_peaks) if all_abs_peaks else 0
-            performance_metrics[clean_sheet_name]["All Inverters_MaxAbsPeak"] = max_abs_peak
+            valid_abs_peaks = [p for p in all_abs_peaks if pd.notna(p)]
+            max_abs_peak = max(valid_abs_peaks) if valid_abs_peaks else 0
+            performance_metrics[sheet_name]["All Inverters_MaxAbsPeak"] = max_abs_peak
 
             for inv_num, inv_abs_peak in inverter_abs_peaks.items():
-                abs_peak_ratio = (inv_abs_peak / max_abs_peak) if max_abs_peak > 0 else 0
-                performance_metrics[clean_sheet_name][f"inverter_{inv_num}_abs_peak_ratio"] = abs_peak_ratio
+                if pd.isna(inv_abs_peak):
+                    abs_peak_ratio = 0
+                else:
+                    abs_peak_ratio = (inv_abs_peak / max_abs_peak) if max_abs_peak > 0 else 0
+                performance_metrics[sheet_name][f"inverter_{inv_num}_abs_peak_ratio"] = abs_peak_ratio
 
     print("Loop End")
     #loop completes then calls this 
@@ -1321,6 +1363,10 @@ def create_list_of_sheet_names(service, spreadsheet_id):
     except HttpError as err:
         print(f"An error occurred: {err}")
         return []
+
+def get_performance_sites_list(creds):
+    service = build('sheets', 'v4', credentials=creds)
+    return create_list_of_sheet_names(service, INV_PERFORMANCE_SHEET)
     
 def email_cherryCB_report(creds):
     # 1. Check if today is Monday (0) or Tuesday (1)

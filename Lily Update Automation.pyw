@@ -289,9 +289,12 @@ def update_Personnel_Sheet():
         connect_db.close()
     #print(data)
     if data == []:
-        exit()
+        messagebox.showinfo(title="Lily Update", message="No Entries found.")
+        return
     # Function to format datetime to date or time
     def format_datetime(dt, fmt):
+        if dt is None:
+            return None
         if fmt == 'date':
             return dt.date()
         elif fmt == 'time':
@@ -305,6 +308,20 @@ def update_Personnel_Sheet():
             continue
         log_id = entry[0]
         description = entry[10]
+
+        if entry[3] is None:
+            messagebox.showwarning(title="Lily Update Error", message="No Start Date found.\nI will now proceed to the Lily Daily Email App, but neglect to update the Lily Personnel sheet due to the missing data.")
+            return
+        elif entry[4] is None:
+            messagebox.showwarning(title="Lily Update Error", message="No Start Time found, but Start Date is present.\nI will now proceed to the Lily Daily Email App, but neglect to update the Lily Personnel sheet due to the missing data.")
+            return
+
+        if entry[5] is None:
+            messagebox.showwarning(title="Lily Update Error", message="No End Date found.\nI will now proceed to the Lily Daily Email App, but neglect to update the Lily Personnel sheet due to the missing data.")
+            return
+        elif entry[6] is None:
+            messagebox.showwarning(title="Lily Update Error", message="No End Time found, but End Date is present.\nI will now proceed to the Lily Daily Email App, but neglect to update the Lily Personnel sheet due to the missing data.")
+            return
             
         # Format dates and times
         formatted_entry = (
@@ -625,7 +642,7 @@ def invoicing_noti():
 
     # Email configuration
     sender_email = EMAILS['NCC Desk']
-    recipient_email = f"{EMAILS['Joseph Lang']}, {EMAILS['Brandon Arrowood']}"
+    recipient_email = EMAILS['Joseph Lang']
     smtp_port = 587
     smtp_username = EMAILS['NCC Desk']
     smtp_password = CREDS['shiftsumEmail']
