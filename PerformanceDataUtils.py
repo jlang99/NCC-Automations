@@ -1,9 +1,11 @@
 import re
 import time as ty
+import threading
 import numpy as np
 import pandas as pd
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+import socket
 import datetime as dt # Already imported
 from bs4 import BeautifulSoup
 from tkinter import messagebox
@@ -31,115 +33,157 @@ JACOB_SITES = {"Lily", "Hayes", "Hickory", "BISHOPVILLE", "Cardinal", "Cherry Bl
 
 EXTRA_SITES = {"Charter GM", "Shoe Show", "Omnidian Target", "Pivot Energy"}
 
+from _api_utils import execute_with_retry as _execute_with_retry
 
-def update_issue_tracking_google_sheet(service, spreadsheet_id, sheet_name, dataframe=False):
-    """Updates a Google Sheet with the given dataframe."""
-    print(sheet_name)
-    # Get spreadsheet metadata to check for existing sheets
-    sheet_metadata = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
-    sheets = sheet_metadata.get('sheets', '')
-    
-    sheet_id = None
-    for s in sheets:
-        if s['properties']['title'] == sheet_name:
-            sheet_id = s['properties']['sheetId']
-            break
 
-    if sheet_id is not None:
-        # Clear existing data
-        service.spreadsheets().values().clear(
+def _normalize_grid(grid):
+    """Normalize a list-of-lists to comparable string form, stripping trailing empty cells/rows."""
+    normalized = []
+    for row in grid:
+        str_row = ['' if v is None else str(v).strip() for v in row]
+        while str_row and str_row[-1] == '':
+            str_row.pop()
+        normalized.append(str_row)
+    while normalized and normalized[-1] == []:
+        normalized.pop()
+    return normalized
+
+
+def _apply_bulk_sheet_updates(service, spreadsheet_id, site_updates, metadata_cache):
+    """
+    Applies all site updates for one spreadsheet in bulk.
+    site_updates: {site_name: dataframe} to write data, or {site_name: None} to clear only.
+    Compares new data against existing sheet content and skips unchanged sites,
+    preserving "Known?" checkbox state for those rows.
+    """
+    if not site_updates:
+        return
+
+    if spreadsheet_id not in metadata_cache:
+        metadata_cache[spreadsheet_id] = _execute_with_retry(
+            service.spreadsheets().get(spreadsheetId=spreadsheet_id)
+        ).get('sheets', [])
+    sheet_id_map = {s['properties']['title']: s['properties']['sheetId']
+                    for s in metadata_cache[spreadsheet_id]}
+
+    # Create any sheets that don't exist yet (single batchUpdate)
+    missing = [name for name in site_updates if name not in sheet_id_map]
+    if missing:
+        response = _execute_with_retry(
+            service.spreadsheets().batchUpdate(
+                spreadsheetId=spreadsheet_id,
+                body={'requests': [{'addSheet': {'properties': {'title': n}}} for n in missing]}
+            )
+        )
+        for reply in response['replies']:
+            ns = reply['addSheet']
+            sheet_id_map[ns['properties']['title']] = ns['properties']['sheetId']
+            metadata_cache[spreadsheet_id].append(ns)
+
+    # --- Incremental change detection ---
+    # Clear-only sites (not in today's report) are always processed.
+    # Data sites are only rewritten if their content has changed.
+    data_site_names = [k for k, v in site_updates.items() if v is not None]
+    clear_only_names = [k for k, v in site_updates.items() if v is None]
+
+    sites_to_update = set(clear_only_names)
+    sorted_dfs = {}
+
+    if data_site_names:
+        # Fetch columns B:Z (data columns only — column A holds user-managed checkboxes)
+        # for all data sites in a single API call.
+        ranges = [f"'{name}'!B:Z" for name in data_site_names]
+        result = _execute_with_retry(
+            service.spreadsheets().values().batchGet(
+                spreadsheetId=spreadsheet_id,
+                ranges=ranges,
+                valueRenderOption='FORMATTED_VALUE'
+            )
+        )
+        value_ranges = result.get('valueRanges', [])
+
+        for i, site_name in enumerate(data_site_names):
+            current_values = value_ranges[i].get('values', []) if i < len(value_ranges) else []
+            df_sorted = site_updates[site_name].sort_values(by='WO Date', ascending=False)
+            new_values = [df_sorted.columns.values.tolist()] + df_sorted.values.tolist()
+
+            if _normalize_grid(new_values) != _normalize_grid(current_values):
+                sites_to_update.add(site_name)
+                sorted_dfs[site_name] = df_sorted
+            else:
+                print(f"No changes for '{site_name}'. Skipping.")
+
+    if not sites_to_update:
+        print(f"No changes detected for spreadsheet {spreadsheet_id}.")
+        return
+
+    # Step 1: Clear only the sites that need updating
+    _execute_with_retry(
+        service.spreadsheets().values().batchClear(
             spreadsheetId=spreadsheet_id,
-            range=sheet_name,
-            body={}
-        ).execute()
-    else:
-        # Create new sheet
-        requests = [{'addSheet': {'properties': {'title': sheet_name}}}]
-        body = {'requests': requests}
-        response = service.spreadsheets().batchUpdate(
-            spreadsheetId=spreadsheet_id,
-            body=body
-        ).execute()
-        sheet_id = response['replies'][0]['addSheet']['properties']['sheetId']
-    if dataframe is not False:
-        dataframe = dataframe.sort_values(by='WO Date', ascending=False)
-        # Write dataframe to sheet
-        values = [dataframe.columns.values.tolist()] + dataframe.values.tolist()
-        body = {'values': values}
-        service.spreadsheets().values().update(
-            spreadsheetId=spreadsheet_id,
-            range=f"'{sheet_name}'!B1",
-            valueInputOption='USER_ENTERED',
-            body=body
-        ).execute()
+            body={'ranges': list(sites_to_update)}
+        )
+    )
 
-        ty.sleep(1) #Added to prevent Rate Limits
+    # Step 2: Write data for changed data sites
+    value_ranges_to_write = []
+    for site_name, df_sorted in sorted_dfs.items():
+        values = [df_sorted.columns.values.tolist()] + df_sorted.values.tolist()
+        value_ranges_to_write.append({'range': f"'{site_name}'!B1", 'values': values})
 
-        if len(values) > 1:
-            requests = [
-                # 1. Request to set the header in cell A1 (Row index 0, Column index 0)
+    if value_ranges_to_write:
+        _execute_with_retry(
+            service.spreadsheets().values().batchUpdate(
+                spreadsheetId=spreadsheet_id,
+                body={'valueInputOption': 'USER_ENTERED', 'data': value_ranges_to_write}
+            )
+        )
+
+    # Step 3: Set "Known?" header and checkboxes for changed data sites only
+    checkbox_requests = []
+    for site_name, df_sorted in sorted_dfs.items():
+        num_data_rows = len(df_sorted)
+        if num_data_rows > 0:
+            sid = sheet_id_map[site_name]
+            checkbox_requests += [
                 {
                     "updateCells": {
-                        "rows": [
-                            {
-                                "values": [
-                                    {
-                                        "userEnteredValue": {
-                                            "stringValue": "Known?"
-                                        }
-                                    }
-                                ]
-                            }
-                        ],
+                        "rows": [{"values": [{"userEnteredValue": {"stringValue": "Known?"}}]}],
                         "fields": "userEnteredValue",
-                        "range": {
-                            "sheetId": sheet_id,
-                            "startRowIndex": 0,
-                            "endRowIndex": 1, # Row 1 is exclusive, so this covers only Row 0 (A1)
-                            "startColumnIndex": 0,
-                            "endColumnIndex": 1  # Column 1 is exclusive, so this covers only Column 0 (A)
-                        }
+                        "range": {"sheetId": sid, "startRowIndex": 0, "endRowIndex": 1,
+                                  "startColumnIndex": 0, "endColumnIndex": 1}
                     }
                 },
-                # 2. Request to apply the checkbox data validation to rows A2 onwards
                 {
                     "setDataValidation": {
-                        "range": {
-                            "sheetId": sheet_id,
-                            # Start at row index 1 (A2) to skip the new header in A1
-                            "startRowIndex": 1,
-                            "endRowIndex": len(values),
-                            "startColumnIndex": 0,
-                            "endColumnIndex": 1
-                        },
-                        "rule": {
-                            "condition": {"type": "BOOLEAN"},
-                            "showCustomUi": True
-                        }
+                        "range": {"sheetId": sid, "startRowIndex": 1,
+                                  "endRowIndex": num_data_rows + 1,
+                                  "startColumnIndex": 0, "endColumnIndex": 1},
+                        "rule": {"condition": {"type": "BOOLEAN"}, "showCustomUi": True}
                     }
                 }
             ]
-            
-            # Execute the batch update with both requests
+
+    if checkbox_requests:
+        _execute_with_retry(
             service.spreadsheets().batchUpdate(
                 spreadsheetId=spreadsheet_id,
-                body={'requests': requests}
-            ).execute()
-    
+                body={'requests': checkbox_requests}
+            )
+        )
 
-    # To avoid hitting rate limits
-    ty.sleep(2)
+    print(f"Updated {len(sites_to_update)} of {len(site_updates)} sites in spreadsheet {spreadsheet_id}.")
 
 
 def process_WO_issue_tracking_file(file_path, creds):
     if not file_path:
         return
     df = pd.read_excel(file_path)
-    
+
     if 'Site' not in df.columns:
         messagebox.showerror("Error", "The Excel file must have a 'Site' column.")
         return
-    
+
     if 'Work Description (Text Only)' in df.columns:
         df['Work Description (Text Only)'] = df['Work Description (Text Only)'].apply(
             lambda x: BeautifulSoup(x, 'html.parser').get_text(separator=' ', strip=True) if isinstance(x, str) else x
@@ -150,44 +194,52 @@ def process_WO_issue_tracking_file(file_path, creds):
 
     # Convert datetime columns to strings to prevent JSON serialization errors
     for col in df.select_dtypes(include=['datetime64[ns]']).columns:
-        # Format to string, preserving NaT (Not a Time) values
         df[col] = df[col].dt.strftime('%Y-%m-%d %H:%M:%S').replace({pd.NaT: None})
     for col in df.select_dtypes(include=['object']).columns:
         if df[col].apply(lambda x: isinstance(x, pd.Timestamp)).any():
             df[col] = df[col].apply(lambda x: x.strftime('%Y-%m-%d %H:%M:%S') if isinstance(x, pd.Timestamp) else x)
 
+    socket.setdefaulttimeout(60)
     service = build('sheets', 'v4', credentials=creds)
 
     grouped = df.groupby('Site')
-
     processed_sites = set()
 
-    for site_name, site_df in grouped:
-        processed_sites.add(site_name) # Add the site to the set of processed sites
-        if site_name in JOSEPH_SITES: # Check if the site belongs to Joseph
-            update_issue_tracking_google_sheet(service, JOSEPH_SHEET, site_name, site_df) # Update Joseph's sheet
-        if site_name in JACOB_SITES: # Check if the site belongs to Jacob
-            update_issue_tracking_google_sheet(service, JACOB_SHEET, site_name, site_df) # Update Jacob's sheet
-        if site_name not in JOSEPH_SITES and site_name not in JACOB_SITES: # If the site doesn't belong to either Joseph or Jacob
-            update_issue_tracking_google_sheet(service, DEFAULT_SHEET, site_name, site_df) # Update the default sheet
+    joseph_updates = {}
+    jacob_updates = {}
+    default_updates = {}
 
-    # Clear sheets for any of Joseph's + Jacob's sites that were not in the report
+    for site_name, site_df in grouped:
+        processed_sites.add(site_name)
+        if site_name in JOSEPH_SITES:
+            joseph_updates[site_name] = site_df
+        if site_name in JACOB_SITES:
+            jacob_updates[site_name] = site_df
+        if site_name not in JOSEPH_SITES and site_name not in JACOB_SITES:
+            default_updates[site_name] = site_df
+
+    # Clear sheets for sites not in today's report
     for site_name in JOSEPH_SITES:
         if site_name not in processed_sites:
-            update_issue_tracking_google_sheet(service, JOSEPH_SHEET, site_name)
+            joseph_updates[site_name] = None
     for site_name in JACOB_SITES:
         if site_name not in processed_sites:
-            update_issue_tracking_google_sheet(service, JACOB_SHEET, site_name)
+            jacob_updates[site_name] = None
     for site_name in EXTRA_SITES:
         if site_name not in processed_sites:
-            update_issue_tracking_google_sheet(service, DEFAULT_SHEET, site_name)
+            default_updates[site_name] = None
+
+    metadata_cache = {}
+    _apply_bulk_sheet_updates(service, JOSEPH_SHEET, joseph_updates, metadata_cache)
+    _apply_bulk_sheet_updates(service, JACOB_SHEET, jacob_updates, metadata_cache)
+    _apply_bulk_sheet_updates(service, DEFAULT_SHEET, default_updates, metadata_cache)
 
 
 
 
 INV_PERFORMANCE_SHEET = '1sp8SJNbMf0AhtEn2-WZmCUKHCGZrqRDgNFNOtoUkuHE'
 INVERTER_GROUPS = {
-    'Bishopville II': {
+    'Bishopville II Solar': {
         '15 String': {"3-6", "3-7"},
         '14 String': {"1-1", "1-2", "1-3", "1-5", "2-2", "2-3", "2-5", "2-7", "2-8", "2-9", "4-4", "4-6", "4-8", "4-9"},
         '13 String': {"1-4", "1-6", "1-7", "1-8", "1-9", "2-1", "2-4", "2-6", "3-1", "3-2", "3-3", "3-4", "3-5", "3-8", "3-9", "4-1", "4-2", "4-3", "4-5", "4-7"},
@@ -209,26 +261,26 @@ INVERTER_GROUPS = {
         '14 String': {"1-1", "1-2", "1-3", "1-4", "1-5", "2-1", "2-2", "2-3", "2-4", "2-5", "2-6", "3-1", "3-2", "3-3", "3-4", "3-5", "4-1", "4-2", "4-3", "4-4", "4-5", "5-1", "5-4", "5-5", "6-1", "6-2", "6-3", "6-4", "6-5"},
         '13 String': {"5-2", "5-3"},
     },
-    'Elk': {
+    'Elk Solar': {
         '11 String': {1, 2, 3, 4, 5, 6, 7, 8, 14, 15, 16, 17, 18, 19, 20, 23, 24, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43},
         '10 String': {9, 10, 11, 12, 13, 21, 22, 25, 26, 27, 28, 29},
     },
-    'Freight Line': {
+    'Freight Line Solar': {
         '19 String': {1, 4, 5, 8, 9, 10, 11, 12, 15, 16, 17, 18},
         '18 String': {3},
         '18 String Limited 66%': {2},
         '10 String': {7, 13},
         '9 String': {6, 14},
     },
-    'Gray Fox': {
+    'Gray Fox Solar': {
         '12 String': {"1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "1.10", "1.11", "2.2", "2.3", "2.4", "2.5", "2.6", "2.7", "2.8", "2.9", "2.10", "2.11"},
         '11 String': {"1.12", "1.13", "1.14", "1.15", "1.16", "1.17", "1.18", "1.19", "1.20", "2.1", "2.12", "2.13", "2.14", "2.15", "2.16", "2.17", "2.18", "2.19", "2.20"},
     },
-    'Harding': {
+    'Harding Solar': {
         '13 String': {4, 5, 6, 10, 11, 12, 13, 14, 15, 17, 18, 19},
         '12 String': {1, 2, 3, 7, 8, 9, 16, 20, 21, 22, 23, 24},
     },
-    'Harrison': {
+    'Harrison Solar': {
         '17 String': {2, 3, 4, 5, 6, 7, 12, 13, 14, 15, 18, 19, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 43},
         '16 String': {1, 8, 9, 10, 11, 16, 17, 21, 40, 41, 42},
     },
@@ -236,15 +288,15 @@ INVERTER_GROUPS = {
         '16 String': {5, 6, 7, 8, 9, 18, 19, 20, 21, 22},
         '15 String': {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 16, 17, 23, 24, 25, 26},
     },
-    'Hickson': {
+    'Hickson Solar Farm': {
         '13 String': {"1-7", "1-8", "1-9", "1-12", "1-13", "1-14", "1-15", "1-16"},
         '12 String': {"1-1", "1-2", "1-3", "1-4", "1-5", "1-6", "1-7", "1-8", "1-9", "1-10", "1-11"},
     },
-    'Jefferson': {
+    'Jefferson Solar': {
         '18 String': {"A1.1", "A1.2", "A1.3", "A1.4", "A1.6", "A1.13", "A1.14", "A2.1", "A2.2", "A2.4", "A2.5", "A2.6", "A2.7", "A2.10", "A2.11", "A2.12", "A2.13", "A2.14", "A2.15", "A2.16", "A3.8", "A3.9", "A3.10", "A3.11", "A3.12", "A3.13", "A3.14", "A3.15", "A4.1", "A4.2", "A4.3", "A4.4", "A4.5", "A4.6", "A4.7", "A4.8"},
         '17 String': {"A1.5", "A1.7", "A1.8", "A1.9", "A1.10", "A1.11", "A1.12", "A1.15", "A1.16", "A2.3", "A2.8", "A2.9", "A3.1", "A3.2", "A3.3", "A3.4", "A3.5", "A3.6", "A3.7", "A3.16", "A4.9", "A4.10", "A4.11", "A4.12", "A4.13", "A4.14", "A4.15", "A4.16"},
     },
-    'Longleaf Pine': {
+    'Longleaf Pine Solar, LLC': {
         '12 String': {"A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "A10", "A11", "B1", "B19", "B20"},
         '11 String': {"A12", "A13", "A14", "A15", "A16", "A17", "A18", "A19", "A20", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9", "B10", "B11", "B12", "B13", "B14", "B15", "B16", "B17", "B18"},
     },
@@ -252,7 +304,7 @@ INVERTER_GROUPS = {
         '11 String': {3, 4, 5, 6, 7, 8, 9, 10, 13, 14, 15, 16, 21, 24, 25, 26, 27, 29, 31},
         '10 String': {1, 2, 11, 12, 17, 18, 19, 20, 22, 23, 28, 30, 32, 33, 34, 35, 36, 37, 38, 39, 40},
     },
-    'PG': {
+    'PG Solar': {
         'Limited .66': {1, 2, 3, 4, 5, 6},
         '100': {7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18},
     },
@@ -260,7 +312,7 @@ INVERTER_GROUPS = {
         '13 String': {6, 16, 21, 25, 29, 30, 31, 34, 35, 36, 44, 49, 50, 51, 54, 55, 56, 57, 67, 68, 69, 70, 71, 72},
         '12 String': {1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 22, 23, 24, 26, 27, 28, 32, 33, 37, 38, 39, 40, 41, 42, 43, 45, 46, 47, 48, 52, 53, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66},
     },
-    'Sunflower': {
+    'Sunflower Solar': {
         '12 String': {1, 2, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 35, 36, 37, 38, 39, 40, 41, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 71, 78, 79, 80},
         '13 String': {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 34, 42, 62, 63, 64, 65, 66, 67, 68, 69, 70, 73, 74, 75, 76, 77},
     },
@@ -268,7 +320,7 @@ INVERTER_GROUPS = {
         '11 String': {1, 2, 3, 4, 5, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21},
         '10 String': {8, 9, 10, 22, 23, 24},
     },
-    'Tedder': {
+    'Tedder Solar': {
         '16 String': {5, 6, 7, 10, 11, 12, 13, 14},
         '15 String': {1, 2, 3, 4, 8, 15, 16},
     },
@@ -276,11 +328,11 @@ INVERTER_GROUPS = {
         '11 String': {1, 2, 3, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 17, 21, 22, 23, 24},
         '10 String': {6, 7, 8, 18, 19, 20},
     },
-    'Washington': {
+    'Washington Solar': {
         '13 String': {4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17, 18, 19, 21, 22, 23, 24, 40},
         '12 String': {1, 2, 3, 13, 14, 20, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39},
     },
-    'Whitehall': {
+    'Whitehall Solar': {
         '13 String': {2, 6, 7, 8, 9, 10, 11, 12},
         '36 String': {1, 3, 4, 5, 13, 14, 15, 16},
     },
@@ -589,10 +641,9 @@ def natural_sort_key(s):
     return (first_number, natural_key)
 
 def update_cb_sheet(metrics, credentials):
-    """Writes the collected metrics to a Google Sheet."""
+    """Writes the collected metrics to a Google Sheet using batched API calls."""
     service = build('sheets', 'v4', credentials=credentials)
 
-    # Helper to format for JSON
     def format_val(v):
         if v is None or (isinstance(v, float) and np.isnan(v)):
             return None
@@ -602,38 +653,55 @@ def update_cb_sheet(metrics, credentials):
             return float(v)
         return v
 
+    # Fetch spreadsheet metadata once for all sites
+    try:
+        spreadsheet = _execute_with_retry(service.spreadsheets().get(spreadsheetId=CB_SHEET))
+    except HttpError as err:
+        print(f"Failed to fetch CB spreadsheet metadata: {err}")
+        email_cherryCB_report(credentials)
+        return
+
+    sheet_map = {
+        s['properties']['title']: {
+            'sheetId': s['properties']['sheetId'],
+            'rowCount': s['properties']['gridProperties']['rowCount']
+        }
+        for s in spreadsheet.get('sheets', [])
+    }
+
+    # First pass: prepare all data and collect any appendDimension requests
+    prepared = {}
+    append_requests = []
+
     for sheet_name, site_metrics in metrics.items():
         if not site_metrics:
             print(f"No metrics to write for {sheet_name}. Skipping.")
             continue
+        if sheet_name not in sheet_map:
+            print(f"Sheet '{sheet_name}' not found. Cannot update.")
+            continue
 
         avg_peak_timestamp = site_metrics.get('avg_peak_timestamp')
         abs_peak_timestamp = site_metrics.get('abs_peak_timestamp')
-        # --- Prepare data for writing ---
-        # Get a unique, sorted list of all CB names for this site
+        avg_peak_timestamp_str = avg_peak_timestamp.strftime('%Y-%m-%d %H:%M') if pd.notna(avg_peak_timestamp) else ''
+        abs_peak_timestamp_str = abs_peak_timestamp.strftime('%Y-%m-%d %H:%M') if pd.notna(abs_peak_timestamp) else ''
+
         all_cb_names = sorted(list(set(
-            # The order of replacements is important here to avoid partial string matching.
-            # '_abs_peak_loss' must be replaced before '_peak_loss' to ensure the full suffix is removed correctly.
+            # '_abs_peak_loss' must be replaced before '_peak_loss' to avoid partial string matching.
             key.replace('cb_', '').replace('_sum_loss', '').replace('_abs_peak_loss', '').replace('_peak_loss', '').replace('_sum', '')
             for key in site_metrics.keys() if key.startswith('cb_')
         )))
 
         cb_data_for_sorting = []
         for cb_name in all_cb_names:
-            sum_loss = site_metrics.get(f"cb_{cb_name}_sum_loss", None)
-            peak_loss = site_metrics.get(f"cb_{cb_name}_peak_loss", None)
-            abs_peak_loss = site_metrics.get(f"cb_{cb_name}_abs_peak_loss", None)
-            cb_sum = site_metrics.get(f"cb_{cb_name}_sum", None)
-            
             cb_data_for_sorting.append({
                 'cb_name': cb_name,
-                'cb_sum': cb_sum,
-                'sum_loss': sum_loss,
-                'peak_loss': peak_loss,
-                'abs_peak_loss': abs_peak_loss
+                'cb_sum': site_metrics.get(f"cb_{cb_name}_sum", None),
+                'sum_loss': site_metrics.get(f"cb_{cb_name}_sum_loss", None),
+                'peak_loss': site_metrics.get(f"cb_{cb_name}_peak_loss", None),
+                'abs_peak_loss': site_metrics.get(f"cb_{cb_name}_abs_peak_loss", None),
             })
 
-        # Sort by group (first digit), then by the maximum of the three loss columns (descending), then by combiner box name (ascending)
         cb_data_for_sorting.sort(key=lambda x: (
             natural_sort_key(x['cb_name'])[1],
             -max(
@@ -644,91 +712,73 @@ def update_cb_sheet(metrics, credentials):
             natural_sort_key(x['cb_name'])
         ))
 
-        data_to_write = []
-        for cb_entry in cb_data_for_sorting:
-            data_to_write.append([
-                cb_entry['cb_name'],
-                format_val(cb_entry['cb_sum']),
-                format_val(cb_entry['sum_loss']),
-                format_val(cb_entry['peak_loss']),
-                format_val(cb_entry['abs_peak_loss'])
-            ])
+        data_to_write = [[
+            cb_entry['cb_name'],
+            format_val(cb_entry['cb_sum']),
+            format_val(cb_entry['sum_loss']),
+            format_val(cb_entry['peak_loss']),
+            format_val(cb_entry['abs_peak_loss'])
+        ] for cb_entry in cb_data_for_sorting]
+
         headers = [["Combiner Box", "5-day Sum (kWh)", "Sum-Based Loss (5-day)", "Avg Peak-Based Loss", "Abs Peak-Based Loss"]]
         final_data = headers + data_to_write
+        prepared[sheet_name] = (final_data, avg_peak_timestamp_str, abs_peak_timestamp_str)
 
-        # --- Write to Google Sheet ---
-        try:
-            # Get spreadsheet metadata to find sheetId and current rowCount
-            spreadsheet = service.spreadsheets().get(spreadsheetId=CB_SHEET).execute()
-            sheet_id = None
-            current_row_count = 0
-            for s in spreadsheet.get('sheets', []):
-                if s.get('properties', {}).get('title') == sheet_name:
-                    sheet_id = s['properties']['sheetId']
-                    current_row_count = s['properties']['gridProperties']['rowCount']
-                    break
-            
-            if sheet_id is None:
-                print(f"Sheet '{sheet_name}' not found. Cannot update.")
-                continue
+        required_rows = len(final_data) + 1
+        current_row_count = sheet_map[sheet_name]['rowCount']
+        if required_rows > current_row_count:
+            rows_to_add = required_rows - current_row_count
+            append_requests.append({
+                'appendDimension': {
+                    'sheetId': sheet_map[sheet_name]['sheetId'],
+                    'dimension': 'ROWS',
+                    'length': rows_to_add
+                }
+            })
+            print(f"Will append {rows_to_add} rows to '{sheet_name}'.")
 
-            # Calculate required rows (data + 1 for timestamp)
-            required_rows = len(final_data) + 1 # +1 for the timestamp row
+    if not prepared:
+        email_cherryCB_report(credentials)
+        return
 
-            # If required rows exceed current row count, append new rows
-            if required_rows > current_row_count:
-                rows_to_add = required_rows - current_row_count
-                append_rows_request = {'appendDimension': {'sheetId': sheet_id, 'dimension': 'ROWS', 'length': rows_to_add}}
-                service.spreadsheets().batchUpdate(spreadsheetId=CB_SHEET, body={'requests': [append_rows_request]}).execute()
-                print(f"Appended {rows_to_add} rows to sheet '{sheet_name}'.")
-                ty.sleep(1)
+    try:
+        # Step 1: Append rows for any sites that need more (rare)
+        if append_requests:
+            _execute_with_retry(
+                service.spreadsheets().batchUpdate(
+                    spreadsheetId=CB_SHEET,
+                    body={'requests': append_requests}
+                )
+            )
 
-            # Clear the sheet before writing new data
-            clear_range = f"{sheet_name}!A1:E" # Clear up to the required rows
-            service.spreadsheets().values().clear(spreadsheetId=CB_SHEET, range=clear_range).execute()
-            ty.sleep(1) # API rate limit
-
-            # Write all data at once
-            range_to_update = f'{sheet_name}!A1'
-            body = {'values': final_data}
-            service.spreadsheets().values().update(
+        # Step 2: Clear all site ranges in one call
+        _execute_with_retry(
+            service.spreadsheets().values().batchClear(
                 spreadsheetId=CB_SHEET,
-                range=range_to_update,
-                valueInputOption='USER_ENTERED',
-                body=body
-            ).execute()
-            print(f"Successfully updated all ratios for {sheet_name}.")
-            ty.sleep(1)
-            
-            # Now, add the timestamps at the end of the respective columns
-            avg_peak_timestamp_str = avg_peak_timestamp.strftime('%Y-%m-%d %H:%M') if pd.notna(avg_peak_timestamp) else ''
+                body={'ranges': [f"{sheet_name}!A1:E" for sheet_name in prepared]}
+            )
+        )
+
+        # Step 3: Write all data and timestamps in one call
+        batch_data = []
+        for sheet_name, (final_data, avg_peak_timestamp_str, abs_peak_timestamp_str) in prepared.items():
+            batch_data.append({'range': f'{sheet_name}!A1', 'values': final_data})
             if avg_peak_timestamp_str:
-                timestamp_cell_d = f'{sheet_name}!D{len(final_data) + 1}'
-                timestamp_body_d = {'values': [[avg_peak_timestamp_str]]}
-                service.spreadsheets().values().update(
-                    spreadsheetId=CB_SHEET,
-                    range=timestamp_cell_d,
-                    valueInputOption='USER_ENTERED',
-                    body=timestamp_body_d
-                ).execute()
-                print(f"Successfully added average peak timestamp for {sheet_name} at {timestamp_cell_d}.")
-                ty.sleep(1)
-
-            abs_peak_timestamp_str = abs_peak_timestamp.strftime('%Y-%m-%d %H:%M') if pd.notna(abs_peak_timestamp) else ''
+                batch_data.append({'range': f'{sheet_name}!D{len(final_data) + 1}', 'values': [[avg_peak_timestamp_str]]})
             if abs_peak_timestamp_str:
-                timestamp_cell_e = f'{sheet_name}!E{len(final_data) + 1}'
-                timestamp_body_e = {'values': [[abs_peak_timestamp_str]]}
-                service.spreadsheets().values().update(
-                    spreadsheetId=CB_SHEET,
-                    range=timestamp_cell_e,
-                    valueInputOption='USER_ENTERED',
-                    body=timestamp_body_e
-                ).execute()
-                print(f"Successfully added absolute peak timestamp for {sheet_name} at {timestamp_cell_e}.")
-                ty.sleep(1)
+                batch_data.append({'range': f'{sheet_name}!E{len(final_data) + 1}', 'values': [[abs_peak_timestamp_str]]})
 
-        except HttpError as err:
-            print(f"An error occurred while writing to sheet {sheet_name}: {err}")
+        _execute_with_retry(
+            service.spreadsheets().values().batchUpdate(
+                spreadsheetId=CB_SHEET,
+                body={'valueInputOption': 'USER_ENTERED', 'data': batch_data}
+            )
+        )
+        print(f"Successfully wrote CB data for {len(prepared)} sites in {len(batch_data)} ranges.")
+
+    except HttpError as err:
+        print(f"An error occurred while writing CB sheet data: {err}")
+
     email_cherryCB_report(credentials)
 
 def process_cb_file(file_path, credentials):
@@ -863,36 +913,25 @@ def natural_sort_key(s):
 
 
 def update_performance_sheet(metrics, credentials):
-    """Writes the collected metrics to a Google Sheet."""
+    """Writes the collected metrics to a Google Sheet using a single batched API call."""
     service = build('sheets', 'v4', credentials=credentials)
 
+    batch_data = []
+
     for site_name, site_metrics in metrics.items():
-        # Extract and sort inverter ratios using natural sort
+        # --- Column B: 5-day sum ratios ---
         inverter_keys = []
         for key, value in site_metrics.items():
             if key.startswith('inverter_') and key.endswith('_ratio') and '_peak_' not in key:
                 inv_id_str = key.replace('inverter_', '').replace('_ratio', '')
                 inverter_keys.append((inv_id_str, value))
-        
-        # Sort by inverter ID using the natural sort key
         inverter_keys.sort(key=lambda x: natural_sort_key(x[0]))
-        # Replace NaN with None for JSON compatibility
         ratios = [[None if isinstance(value, float) and np.isnan(value) else value] for _, value in inverter_keys]
-        #print(f"Prepared performance ratios for {site_name}: {ratios}")
         if ratios:
-            range_end = 1 + len(ratios) # B2 to B(num_inverters + 1)
-            range_to_update = f'{site_name}!B2:B{range_end}'
-            body = {'values': ratios}
-            
-            service.spreadsheets().values().update(
-                spreadsheetId=INV_PERFORMANCE_SHEET,
-                range=range_to_update,
-                valueInputOption='USER_ENTERED',
-                body=body
-            ).execute()
-            print(f"Successfully updated performance ratios for {site_name} in range {range_to_update}.")
-            ty.sleep(1)  # Pause to avoid hitting API rate limits
-        # --- Ratios based on AVERAGE (for column C) ---
+            range_end = 1 + len(ratios)
+            batch_data.append({'range': f'{site_name}!B2:B{range_end}', 'values': ratios})
+
+        # --- Column C: average peak ratios + timestamp ---
         avg_peak_timestamp = site_metrics.get('avg_peak_timestamp')
         avg_peak_timestamp_str = avg_peak_timestamp.strftime('%Y-%m-%d %H:%M') if pd.notna(avg_peak_timestamp) else ''
 
@@ -901,73 +940,39 @@ def update_performance_sheet(metrics, credentials):
             if key.startswith('inverter_') and key.endswith('_peak_ratio') and '_abs_' not in key:
                 inv_id_str = key.replace('inverter_', '').replace('_peak_ratio', '')
                 avg_inverter_keys.append((inv_id_str, value))
-        
         avg_inverter_keys.sort(key=lambda x: natural_sort_key(x[0]))
-        # Replace NaN with None for JSON compatibility
         avg_ratios = [[None if isinstance(value, float) and np.isnan(value) else value] for _, value in avg_inverter_keys]
-        #print(f"Prepared average performance ratios for {site_name}: {avg_ratios}")
         if avg_ratios:
             range_end = 1 + len(avg_ratios)
-            range_to_update = f'{site_name}!C2:C{range_end}'
-            body = {'values': avg_ratios}
-            service.spreadsheets().values().update(
-                spreadsheetId=INV_PERFORMANCE_SHEET,
-                range=range_to_update,
-                valueInputOption='USER_ENTERED',
-                body=body
-            ).execute()
-            print(f"Successfully updated average performance ratios for {site_name} in range {range_to_update}.")
-            ty.sleep(1)
-            # Now, add the timestamp at the end of the column
+            batch_data.append({'range': f'{site_name}!C2:C{range_end}', 'values': avg_ratios})
             timestamp_cell = f'{site_name}!C{max(SITE_DATA[site_name]["inv_num"] + 2, range_end + 1)}'
-            timestamp_body = {'values': [[avg_peak_timestamp_str]]}
-            service.spreadsheets().values().update(
-                spreadsheetId=INV_PERFORMANCE_SHEET,
-                range=timestamp_cell,
-                valueInputOption='USER_ENTERED',
-                body=timestamp_body
-            ).execute()
-            print(f"Successfully added timestamp for average peak ratios at {timestamp_cell}.")
-            ty.sleep(1)
+            batch_data.append({'range': timestamp_cell, 'values': [[avg_peak_timestamp_str]]})
 
-        # --- Ratios based on ABSOLUTE PEAK (for column D) ---
+        # --- Column D: absolute peak ratios + timestamp ---
         abs_peak_timestamp = site_metrics.get('abs_peak_timestamp')
         abs_peak_timestamp_str = abs_peak_timestamp.strftime('%Y-%m-%d %H:%M') if pd.notna(abs_peak_timestamp) else ''
 
-        # --- Ratios based on ABSOLUTE PEAK (for column D) ---
         abs_peak_inverter_keys = []
         for key, value in site_metrics.items():
             if key.startswith('inverter_') and key.endswith('_abs_peak_ratio'):
                 inv_id_str = key.replace('inverter_', '').replace('_abs_peak_ratio', '')
                 abs_peak_inverter_keys.append((inv_id_str, value))
-        
         abs_peak_inverter_keys.sort(key=lambda x: natural_sort_key(x[0]))
         abs_peak_ratios = [[None if isinstance(value, float) and np.isnan(value) else value] for _, value in abs_peak_inverter_keys]
-        
         if abs_peak_ratios:
             range_end = 1 + len(abs_peak_ratios)
-            range_to_update = f'{site_name}!D2:D{range_end}'
-            body = {'values': abs_peak_ratios}
-            service.spreadsheets().values().update(
-                spreadsheetId=INV_PERFORMANCE_SHEET,
-                range=range_to_update,
-                valueInputOption='USER_ENTERED',
-                body=body
-            ).execute()
-            print(f"Successfully updated absolute peak performance ratios for {site_name} in range {range_to_update}.")
-            ty.sleep(1)
-
-            # Now, add the timestamp at the end of the column
+            batch_data.append({'range': f'{site_name}!D2:D{range_end}', 'values': abs_peak_ratios})
             timestamp_cell = f'{site_name}!D{max(SITE_DATA[site_name]["inv_num"] + 2, range_end + 1)}'
-            timestamp_body = {'values': [[abs_peak_timestamp_str]]}
-            service.spreadsheets().values().update(
+            batch_data.append({'range': timestamp_cell, 'values': [[abs_peak_timestamp_str]]})
+
+    if batch_data:
+        _execute_with_retry(
+            service.spreadsheets().values().batchUpdate(
                 spreadsheetId=INV_PERFORMANCE_SHEET,
-                range=timestamp_cell,
-                valueInputOption='USER_ENTERED',
-                body=timestamp_body
-            ).execute()
-            print(f"Successfully added timestamp for absolute peak ratios at {timestamp_cell}.")
-            ty.sleep(1)
+                body={'valueInputOption': 'USER_ENTERED', 'data': batch_data}
+            )
+        )
+        print(f"Successfully wrote {len(batch_data)} ranges to INV performance sheet in a single batch.")
 
 
 
@@ -1400,7 +1405,7 @@ def email_cherryCB_report(creds):
         pdf_url = f'https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export?format=pdf&gid={sheet_id}&range=A:G'
         
         print(f"Downloading PDF for '{sheet_title}' from '{pdf_url}'...")
-        response = requests.get(pdf_url, headers=headers)
+        response = requests.get(pdf_url, headers=headers, timeout=60)
         response.raise_for_status() # Raise an exception for bad status codes
         pdf_content = response.content
         print("PDF downloaded successfully.")

@@ -3,6 +3,7 @@ import os, sys
 import re
 import datetime as dt
 import time as ty
+import threading
 from bs4 import BeautifulSoup
 import requests
 import io
@@ -27,6 +28,44 @@ from googleapiclient.http import MediaIoBaseUpload
 
 
 TR_REPORT_SHEET_ID = "1MlL1QKwOyOaNV9k0SJ59H0NsqvUVJfWXxocKxWhnmWQ"
+
+from _api_utils import execute_with_retry as _execute_with_retry
+
+TR_NUM_SHEET_ID = "1EzgmTCAAkCuOIVVRTUtNOp_jXdZpT7Hob-DUhEuYmrE"
+TR_CELL_MAPPING = {
+    "BISHOPVILLE": "D2",
+    "Bluebird": "D3",
+    "Bulloch 1A": "D4",
+    "Bulloch 1B": "D5",
+    "Cardinal": "D6",
+    "Cherry Blossom": "D7",
+    "Conetoe 1": "D8",
+    "Elk": "D9",
+    "Freight Line": "D10",
+    "Gray Fox": "D11",
+    "Harding": "D12",
+    "Hayes": "D13",
+    "Hickory": "D14",
+    "HICKSON": "D15",
+    "Holly Swamp": "D16",
+    "JEFFERSON": "D17",
+    "LongLeaf Pine Solar": "D18",
+    "Marshall": "D19",
+    "Mclean": "D20",
+    "OGBURN": "D21",
+    "PG Solar": "D22",
+    "Richmond Cadle": "D23",
+    "Shorthorn": "D24",
+    "Sunflower": "D25",
+    "Tedder": "D26",
+    "Thunderhead": "D27",
+    "Upson": "D28",
+    "Van Buren": "D29",
+    "Washington": "D30",
+    "Whitehall": "D31",
+    "Whitetail": "D32",
+    "WILLIAMS": "D33",
+}
 
 # Define the necessary scopes for Sheets and Drive
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
@@ -642,17 +681,18 @@ def input_loss_data_to_SQL(loss_data):
     dbconnection.close()
 
 def process_AE_Tracker_Loss_file(file_path, credentials):
-    xls = pd.ExcelFile(file_path)
     print("Starting Loss Calculation")
     service = build('sheets', 'v4', credentials=credentials)
-    
+
+    print("Reading Excel file...")
+    all_sheets = pd.read_excel(file_path, sheet_name=None, skiprows=2)
+
     loss_data = []
     tracker_daily_loss = {}
-    for sheet_name in xls.sheet_names:
+    for sheet_name, df in all_sheets.items():
         if sheet_name != "Sheet 1":
-            df = pd.read_excel(file_path, sheet_name=sheet_name, skiprows=2)
-            df = df.iloc[1:]
-            df.iloc[:, -3] = df.iloc[:, -3].fillna(df.iloc[:, -2])
+            df = df.iloc[1:].copy()
+            df.iloc[:, -3] = df.iloc[:, -3].fillna(df.iloc[:, -2]).infer_objects(copy=False)
             # Sum all numeric columns (excluding timestamp at index 0) to get a single scalar
             print(f"Processing {sheet_name} | {dt.datetime.now().time()}")
             loss_sum = float(df.iloc[:, 1:-3].sum().sum()) # Sums all the Node Loss Data
@@ -687,27 +727,30 @@ def process_AE_Tracker_Loss_file(file_path, credentials):
         # Write new data to the sheet
         # First, write the data values to the sheet
         body = {"values": loss_data}
-        sheet.values().update(spreadsheetId=TRACKER_CHECK_SHEET,
-                            range=f"OverView!E2:F{len(loss_data) + 1}", 
+        _execute_with_retry(sheet.values().update(spreadsheetId=TRACKER_CHECK_SHEET,
+                            range=f"OverView!E2:F{len(loss_data) + 1}",
                             valueInputOption="USER_ENTERED",
-                            body=body).execute()
-
-        ty.sleep(0.5)
+                            body=body))
 
     except HttpError as err:
         print(err)    
 
 
 def process_AE_Tracker_file(file_path, credentials):
-    # Load the Excel file with multiple sheets
-    xls = pd.ExcelFile(file_path)
     print("Started", dt.datetime.now())
     service = build('sheets', 'v4', credentials=credentials)
+    tc_metadata = _execute_with_retry(service.spreadsheets().get(spreadsheetId=TRACKER_CHECK_SHEET))
+    tc_sheet_id_map = {s.get('properties', {}).get('title'): s.get('properties', {}).get('sheetId') for s in tc_metadata.get('sheets', [])}
 
-    for sheet_name in xls.sheet_names:
+    print("Reading Excel file...")
+    all_sheets = pd.read_excel(file_path, sheet_name=None, skiprows=2)
+    clear_ranges = []
+    write_batch = []
+    checkbox_requests = []
+
+    for sheet_name, df in all_sheets.items():
         if sheet_name != "Sheet 1":
             print(f"Processing {sheet_name:<29} | {dt.datetime.now().time()}")
-            df = pd.read_excel(file_path, sheet_name=sheet_name, skiprows=2)
             #Data Cleaning
             # Remove columns that include the word 'Setpoint' or 'Target' in the field name
             if sheet_name == 'Whitetail':
@@ -877,96 +920,71 @@ def process_AE_Tracker_file(file_path, credentials):
                 print(f"Updating {len(update_requests)} trackers on {sheet_name} Google Sheet Map...")
                 try:
                     body = {'requests': update_requests}
-                    service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=body).execute()
-                    ty.sleep(1) # One sleep per sheet is much better
+                    _execute_with_retry(service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=body))
                 except HttpError as er:
                     print(f"Error updating sheet for {sheet_name}: {er}")
             
-            clear_tracker_past(sheet_name, credentials)
+            clear_tracker_past(sheet_name, clear_ranges)
             if results:
                 if results[0]:
-                    #ic(sheet_name, results)
-                    write_tracker_results(sheet_name, results, credentials)
+                    write_tracker_results(sheet_name, results, write_batch, checkbox_requests, tc_sheet_id_map.get(sheet_name))
+
+    if clear_ranges:
+        _execute_with_retry(service.spreadsheets().values().batchClear(
+            spreadsheetId=TRACKER_CHECK_SHEET, body={'ranges': clear_ranges}
+        ))
+        print(f"Batch cleared {len(clear_ranges)} tracker check sheets.")
+    if write_batch:
+        _execute_with_retry(service.spreadsheets().values().batchUpdate(
+            spreadsheetId=TRACKER_CHECK_SHEET,
+            body={'valueInputOption': 'USER_ENTERED', 'data': write_batch}
+        ))
+        print(f"Batch wrote results for {len(write_batch)} sites.")
+    if checkbox_requests:
+        _execute_with_retry(service.spreadsheets().batchUpdate(
+            spreadsheetId=TRACKER_CHECK_SHEET, body={'requests': checkbox_requests}
+        ))
+        print(f"Batch set checkboxes for {len(write_batch)} sites.")
     print("Finished", dt.datetime.now())
 
-def clear_tracker_past(sheet_name, credentials):
-    print(f"Clearing {sheet_name:<31} | {dt.datetime.now().time()}")
-    try:
-        service = build('sheets', 'v4', credentials=credentials)
-        sheet = service.spreadsheets()
+def clear_tracker_past(sheet_name, clear_ranges):
+    print(f"Queuing clear for {sheet_name:<31} | {dt.datetime.now().time()}")
+    clear_ranges.append(f"{sheet_name}!A1:I1000")
 
-        # Clear the contents of the sheet
-        clear_range = f"{sheet_name}!A1:I1000"  # Adjust the range as needed
-        sheet.values().clear(spreadsheetId=TRACKER_CHECK_SHEET, range=clear_range).execute()
-
-    except HttpError as err:
-        print(err)
-    except IndexError as outbounds:
-        print(outbounds)
-            
-def write_tracker_results(sheet_name, data, credentials):
-    print(f"Writing {sheet_name:<32} | {dt.datetime.now().time()}")
-    try:
-        service = build('sheets', 'v4', credentials=credentials)
-        sheet = service.spreadsheets()
-
-        # Write new data to the sheet
-        # First, write the data values to the sheet
-        body = {"values": data}
-        sheet.values().update(spreadsheetId=TRACKER_CHECK_SHEET, range=f"{sheet_name}!A1", valueInputOption="USER_ENTERED", body=body).execute()
-        sheet.values().update(
-            spreadsheetId=TRACKER_CHECK_SHEET,
-            range=f"{sheet_name}!A1",
-            valueInputOption="USER_ENTERED",
-            body=body
-        ).execute()
-
-        # Then, get the sheet ID to apply data validation for checkboxes
-        spreadsheet_metadata = sheet.get(spreadsheetId=TRACKER_CHECK_SHEET).execute()
-        sheet_id = None
-        for s in spreadsheet_metadata.get('sheets', []):
-            if s.get('properties', {}).get('title') == sheet_name:
-                sheet_id = s.get('properties', {}).get('sheetId')
-                break
-
-        if sheet_id is not None:
-            # Create a batch update request to set data validation for checkboxes in column J
-            requests = [
-                {
-                    'setDataValidation': {
-                        'range': {
-                            'sheetId': sheet_id,
-                            'startRowIndex': 0,
-                            'endRowIndex': len(data),
-                            'startColumnIndex': 9,
-                            'endColumnIndex': 10
-                        },
-                        'rule': {
-                            'condition': {'type': 'BOOLEAN'},
-                            'showCustomUi': True
-                        }
-                    }
-                },
-                {
-                    'updateCells': {
-                        'rows': [{'values': [{'userEnteredValue': {'boolValue': False}}]} for _ in range(len(data))],
-                        'fields': 'userEnteredValue',
-                        'range': {
-                            'sheetId': sheet_id,
-                            'startRowIndex': 0,
-                            'endRowIndex': len(data),
-                            'startColumnIndex': 9,
-                            'endColumnIndex': 10
-                        }
+def write_tracker_results(sheet_name, data, write_batch, checkbox_requests, sheet_id):
+    print(f"Queuing write for {sheet_name:<32} | {dt.datetime.now().time()}")
+    write_batch.append({'range': f"{sheet_name}!A1", 'values': data})
+    if sheet_id is not None:
+        checkbox_requests.extend([
+            {
+                'setDataValidation': {
+                    'range': {
+                        'sheetId': sheet_id,
+                        'startRowIndex': 0,
+                        'endRowIndex': len(data),
+                        'startColumnIndex': 9,
+                        'endColumnIndex': 10,
+                    },
+                    'rule': {
+                        'condition': {'type': 'BOOLEAN'},
+                        'showCustomUi': True,
                     },
                 }
-            ]
-            batch_update_body = {'requests': requests}
-            sheet.batchUpdate(spreadsheetId=TRACKER_CHECK_SHEET, body=batch_update_body).execute()
-            ty.sleep(0.5)
-
-    except HttpError as err:
-        print(err)
+            },
+            {
+                'updateCells': {
+                    'rows': [{'values': [{'userEnteredValue': {'boolValue': False}}]} for _ in range(len(data))],
+                    'fields': 'userEnteredValue',
+                    'range': {
+                        'sheetId': sheet_id,
+                        'startRowIndex': 0,
+                        'endRowIndex': len(data),
+                        'startColumnIndex': 9,
+                        'endColumnIndex': 10,
+                    },
+                },
+            },
+        ])
 
 
 
@@ -1100,7 +1118,7 @@ def email_pdf_reports(creds):
                 jacob_reports_generated = True
 
             # Add a delay to avoid hitting API rate limits
-            ty.sleep(5)
+            ty.sleep(10)
         except requests.exceptions.RequestException as e:
             print(f"Error downloading PDF for {sheet_title}: {e}")
         except HttpError as e:
@@ -1145,21 +1163,42 @@ def email_pdf_reports(creds):
     except Exception as e:
         print(f"Failed to send email: {e}")
 
-def delete_TR_report_rows(sheet_name, service):
-    
+def _build_delete_request(sheet_id, values_response, begin_row, start_marker, end_marker):
+    """Returns a single deleteDimension request dict, or None if no rows to delete."""
+    values = values_response.get('values', [])
+    start_row = None
+    end_row = None
+    for i, row in enumerate(values):
+        if start_marker in row:
+            start_row = i
+        elif end_marker in row:
+            end_row = i
+            break
+    if start_row is not None and end_row is not None and end_row > start_row:
+        return {
+            'deleteDimension': {
+                'range': {
+                    'sheetId': sheet_id,
+                    'dimension': 'ROWS',
+                    'startIndex': start_row + begin_row,
+                    'endIndex': end_row + begin_row - 1,
+                }
+            }
+        }
+    return None
+
+
+def delete_TR_report_rows(sheet_name, service, sheet_id):
+
     begin_row = 12
     s_row = 16
 
-
-    # Read the data from the specified range
-    result = service.spreadsheets().values().get(
+    result = _execute_with_retry(service.spreadsheets().values().get(
         spreadsheetId=TR_REPORT_SHEET_ID,
         range=f"{sheet_name}!G{begin_row}:K"
-    ).execute()
-    ty.sleep(1) #Slow the executes to prevent being kicked by Google (playing with the minimum time)
+    ))
     values = result.get('values', [])
 
-    sheet_id = get_sheet_id(service, TR_REPORT_SHEET_ID, sheet_name)
     if sheet_id is None:
         print(f"Could not find sheetId for {sheet_name}")
         return
@@ -1196,20 +1235,15 @@ def delete_TR_report_rows(sheet_name, service):
                 'requests': requests
             }
 
-            service.spreadsheets().batchUpdate(
+            _execute_with_retry(service.spreadsheets().batchUpdate(
                 spreadsheetId=TR_REPORT_SHEET_ID,
                 body=body
-            ).execute()
-            ty.sleep(1) #Slow the executes to prevent being kicked by Google (playing with the minimum time)
+            ))
 
-
-
-    # Read the data from the specified range
-    result_2 = service.spreadsheets().values().get(
+    result_2 = _execute_with_retry(service.spreadsheets().values().get(
         spreadsheetId=TR_REPORT_SHEET_ID,
         range=f"{sheet_name}!G{s_row}:K"
-    ).execute()
-    ty.sleep(1) #Slow the executes to prevent being kicked by Google (playing with the minimum time)
+    ))
 
 
     values_2 = result_2.get('values', [])
@@ -1246,36 +1280,31 @@ def delete_TR_report_rows(sheet_name, service):
                 'requests': requests_2
             }
 
-            service.spreadsheets().batchUpdate(
+            _execute_with_retry(service.spreadsheets().batchUpdate(
                 spreadsheetId=TR_REPORT_SHEET_ID,
                 body=body_2
-            ).execute()
-            ty.sleep(1) #Slow the executes to prevent being kicked by Google (playing with the minimum time)
+            ))
 
     print(f"Deleted {num_rows_to_delete} rows at {start_row+begin_row} to {end_row+begin_row-1} from {sheet_name}.")    
     print(f"Deleted {num_rows_to_delete_2} rows at {start_row_2+s_row} to {end_row_2+s_row-1} from {sheet_name} (second deletion).")
 
 
-def insert_TR_report_rows(service, spreadsheet_id, sheet_id, start_row_index, num_rows, openVclosed):
-    """Inserts rows into a sheet."""
+def _build_insert_requests(sheet_id, start_row_index, num_rows):
+    """Returns request dicts for inserting formatted/merged rows without calling the API."""
     if num_rows <= 0:
-        return
-
-    
+        return []
     start_col = 6  # Column G
     requests = [{
         'insertDimension': {
             'range': {
                 'sheetId': sheet_id,
                 'dimension': 'ROWS',
-                'startIndex': start_row_index - 1, # 0-indexed
-                'endIndex': start_row_index - 1 + num_rows
+                'startIndex': start_row_index - 1,
+                'endIndex': start_row_index - 1 + num_rows,
             },
-            'inheritFromBefore': False 
+            'inheritFromBefore': False,
         }
     }]
-
-    # Add merge requests for each new row
     for i in range(num_rows):
         current_row_index = start_row_index - 1 + i
         requests.append({
@@ -1285,20 +1314,20 @@ def insert_TR_report_rows(service, spreadsheet_id, sheet_id, start_row_index, nu
                     'startRowIndex': current_row_index,
                     'endRowIndex': current_row_index + 1,
                     'startColumnIndex': 0,
-                    'endColumnIndex': 11
+                    'endColumnIndex': 11,
                 },
                 'rows': [{'values': [{'userEnteredFormat': {
                     'borders': {
                         'top': {'style': 'SOLID'},
                         'bottom': {'style': 'SOLID'},
                         'left': {'style': 'SOLID'},
-                        'right': {'style': 'SOLID'}
+                        'right': {'style': 'SOLID'},
                     },
                     'wrapStrategy': 'WRAP',
                     'horizontalAlignment': 'CENTER',
-                    'verticalAlignment': 'MIDDLE'
+                    'verticalAlignment': 'MIDDLE',
                 }}] * 11}],
-                'fields': 'userEnteredFormat(borders,wrapStrategy,horizontalAlignment,verticalAlignment)'
+                'fields': 'userEnteredFormat(borders,wrapStrategy,horizontalAlignment,verticalAlignment)',
             }
         })
         requests.append({
@@ -1308,87 +1337,26 @@ def insert_TR_report_rows(service, spreadsheet_id, sheet_id, start_row_index, nu
                     'startRowIndex': current_row_index,
                     'endRowIndex': current_row_index + 1,
                     'startColumnIndex': start_col,
-                    'endColumnIndex': 11  # Column K is index 10, endIndex is exclusive
+                    'endColumnIndex': 11,
                 },
-                'mergeType': 'MERGE_ALL'
+                'mergeType': 'MERGE_ALL',
             }
         })
-    body = {'requests': requests}
-    service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=body).execute()
-    ty.sleep(1)
+    return requests
 
 
-def input_to_TR_report_spreadsheet(site, issue_log_time, log_repair_time, issue_repair_time, average_open, longest_open, longest_open_wo, fastest_repair, fastest_repair_wo, open_wos, completed_wos, stow_count, open_non_stow_count, kwh_loss_sum, service):
-    print(f"Updating Sheet: {site}")
-    TR_NUM_SHEET_ID = "1EzgmTCAAkCuOIVVRTUtNOp_jXdZpT7Hob-DUhEuYmrE"
-    cell_mapping = {
-        "BISHOPVILLE": "D2",
-        "Bluebird": "D3",
-        "Bulloch 1A": "D4",
-        "Bulloch 1B": "D5",
-        "Cardinal": "D6",
-        "Cherry Blossom": "D7",
-        "Conetoe 1": "D8",
-        "Elk": "D9",
-        "Freight Line": "D10",
-        "Gray Fox": "D11",
-        "Harding": "D12",
-        "Hayes": "D13",
-        "Hickory": "D14",
-        "HICKSON": "D15",
-        "Holly Swamp": "D16",
-        "JEFFERSON": "D17",
-        "LongLeaf Pine Solar": "D18",
-        "Marshall": "D19",
-        "Mclean": "D20",
-        "OGBURN": "D21",
-        "PG Solar": "D22",
-        "Richmond Cadle": "D23",
-        "Shorthorn": "D24",
-        "Sunflower": "D25",
-        "Tedder": "D26",
-        "Thunderhead": "D27",
-        "Upson": "D28",
-        "Van Buren": "D29",
-        "Washington": "D30",
-        "Whitehall": "D31",
-        "Whitetail": "D32",
-        "WILLIAMS": "D33",
-    }
-
-    if site in cell_mapping:
-        try:
-            target_cell = cell_mapping[site]
-            summary_tab_name = "OverView" # <--- CHECK THIS: Change if your summary tab has a different name
-            summary_range = f"'{summary_tab_name}'!{target_cell}"
-            
-            # Write the open_non_stow_count to the target cell
-            service.spreadsheets().values().update(
-                spreadsheetId=TR_NUM_SHEET_ID,
-                range=summary_range,
-                valueInputOption='RAW',
-                body={'values': [[int(open_non_stow_count)]]}
-            ).execute()
-            print(f" -> Updated Summary Count ({open_non_stow_count}) for {site} in cell {target_cell}")
-            ty.sleep(1)
-        except Exception as e:
-            print(f" -> Error updating Summary Sheet for {site}: {e}")
-    else:
-        print(f" -> Site '{site}' not found in cell_mapping. Skipping summary update.")
-    
+def insert_TR_report_rows(service, spreadsheet_id, sheet_id, start_row_index, num_rows, openVclosed):
+    """Inserts rows into a sheet."""
+    requests = _build_insert_requests(sheet_id, start_row_index, num_rows)
+    if requests:
+        _execute_with_retry(service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body={'requests': requests}))
 
 
-    
+def input_to_TR_report_spreadsheet(site, issue_log_time, log_repair_time, issue_repair_time, average_open, longest_open, longest_open_wo, fastest_repair, fastest_repair_wo, open_wos, completed_wos, stow_count, open_non_stow_count, kwh_loss_sum, service, sheet_id, metrics_batch, data_batch, insert_params):
+    print(f"Queuing data for: {site}")
+
     open_wo_count = len(open_wos)
-    sheet_service = service.spreadsheets()
 
-    spreadsheet_metadata = sheet_service.get(spreadsheetId=TR_REPORT_SHEET_ID).execute()
-    sheet_id = None
-    for s in spreadsheet_metadata.get('sheets', []):
-        if s.get('properties', {}).get('title') == site:
-            sheet_id = s.get('properties', {}).get('sheetId')
-            break
-    
     if sheet_id is None:
         print(f"Sheet '{site}' not found. Skipping update.")
         return
@@ -1421,56 +1389,55 @@ def input_to_TR_report_spreadsheet(site, issue_log_time, log_repair_time, issue_
         ]
     ]
     
-    sheet_service.values().update(spreadsheetId=TR_REPORT_SHEET_ID, range=f"'{site}'!A9:K9", valueInputOption='USER_ENTERED', body={'values': metrics_data}).execute()
-    print(f"Updated metrics for {site}\nDeleting old data...")
-    delete_TR_report_rows(site, service)
+    metrics_batch.append({'range': f"'{site}'!A9:K9", 'values': metrics_data})
 
-
-    # Write new "Completed Work Orders" data.
+    completed_values = None
     if not completed_wos.empty:
         completed_wos_to_sheet = completed_wos[['WO No.', 'Start Date Time', 'WO Date', 'End Date Time', 'Duration', 'Brief Description', 'Work Description']].copy()
         completed_wos_to_sheet['WO Date'] = pd.to_datetime(completed_wos_to_sheet['WO Date']).dt.strftime('%Y-%m-%d')
         completed_wos_to_sheet['Start Date Time'] = pd.to_datetime(completed_wos_to_sheet['Start Date Time']).dt.strftime('%Y-%m-%d %H:%M')
         completed_wos_to_sheet['End Date Time'] = pd.to_datetime(completed_wos_to_sheet['End Date Time']).dt.strftime('%Y-%m-%d %H:%M')
         completed_wos_to_sheet['Duration'] = completed_wos_to_sheet['Duration'].apply(format_timedelta)
-        
-        values = completed_wos_to_sheet.fillna('N/A').values.tolist()
-        insert_TR_report_rows(service, TR_REPORT_SHEET_ID, sheet_id, 13, len(values), True)
-        sheet_service.values().update(spreadsheetId=TR_REPORT_SHEET_ID, range=f"'{site}'!A13", valueInputOption='USER_ENTERED', body={'values': values}).execute()
+        completed_values = completed_wos_to_sheet.fillna('N/A').values.tolist()
+        data_batch.append({'range': f"'{site}'!A13", 'values': completed_values})
 
-    # Determine the dynamic starting row for the "Open Work Orders" section.
-    if not completed_wos.empty:
-        num_completed_rows = len(completed_wos.index)
-        # Layout: Header at 13, then N data rows. Then EndMarker, Blank, Title, Header.
-        open_wo_header_row = 13 + num_completed_rows + 4
-    else:
-        # If no completed WOs, user specified data starts at 17, so header is at 16.
-        open_wo_header_row = 17
-    
-    # Write new "Open Work Orders" data.
+    # Layout: Header at 13, then N data rows. Then EndMarker, Blank, Title, Header.
+    num_completed = len(completed_values) if completed_values else 0
+    open_wo_header_row = 13 + num_completed + 4 if num_completed else 17
+
+    open_values = None
     if not open_wos.empty:
         open_wos_to_sheet = open_wos[['WO No.', 'Start Date Time', 'WO Date', 'Sched. Completion Date', 'Duration', 'KWH Loss', 'Brief Description']].copy()
         open_wos_to_sheet['WO Date'] = pd.to_datetime(open_wos_to_sheet['WO Date']).dt.strftime('%Y-%m-%d')
         open_wos_to_sheet['Start Date Time'] = pd.to_datetime(open_wos_to_sheet['Start Date Time']).dt.strftime('%Y-%m-%d %H:%M')
         open_wos_to_sheet['Sched. Completion Date'] = pd.to_datetime(open_wos_to_sheet['Sched. Completion Date']).dt.strftime('%Y-%m-%d')
         open_wos_to_sheet['Duration'] = open_wos_to_sheet['Duration'].apply(format_timedelta)
+        open_values = open_wos_to_sheet.fillna('N/A').values.tolist()
+        data_batch.append({'range': f"'{site}'!A{open_wo_header_row}", 'values': open_values})
 
-        values = open_wos_to_sheet.fillna('N/A').values.tolist()
-        insert_TR_report_rows(service, TR_REPORT_SHEET_ID, sheet_id, open_wo_header_row, len(values), False)
-        sheet_service.values().update(spreadsheetId=TR_REPORT_SHEET_ID, range=f"'{site}'!A{open_wo_header_row}", valueInputOption='USER_ENTERED', body={'values': values}).execute()
-
-    print(f"Successfully updated sheet for {site}")
+    insert_params[site] = {
+        'sheet_id': sheet_id,
+        'completed_count': len(completed_values) if completed_values else 0,
+        'open_count': len(open_values) if open_values else 0,
+        'open_start_row': open_wo_header_row,
+    }
+    print(f"Queued data for {site}: {num_completed} completed, {len(open_values) if open_values else 0} open WOs")
 
 
 
 def process_TR_report_wos(file_path, creds):
     service = build('sheets', 'v4', credentials=creds)
-    spreadsheet_metadata = service.spreadsheets().get(spreadsheetId=TR_REPORT_SHEET_ID).execute()
-    valid_sites = {s.get('properties', {}).get('title') for s in spreadsheet_metadata.get('sheets', [])}
+    spreadsheet_metadata = _execute_with_retry(service.spreadsheets().get(spreadsheetId=TR_REPORT_SHEET_ID))
+    sheet_id_map = {s.get('properties', {}).get('title'): s.get('properties', {}).get('sheetId') for s in spreadsheet_metadata.get('sheets', [])}
+    valid_sites = set(sheet_id_map.keys())
     print("Start! Tracker Report")
     c, dbconnection = connect_db()
 
     df = pd.read_excel(file_path, sheet_name='Sheet1')
+    summary_updates = {}
+    metrics_batch = []
+    data_batch = []
+    insert_params = {}
 
     for site, site_df in df.groupby('Site'):
         if site not in valid_sites:
@@ -1735,9 +1702,12 @@ def process_TR_report_wos(file_path, creds):
         if not open_wos['Duration'].dropna().empty:
             avg_open_duration = open_wos['Duration'].mean()
 
+        if site in TR_CELL_MAPPING:
+            summary_updates[site] = open_non_stow_count
+
         input_to_TR_report_spreadsheet(
             site=site,
-            issue_log_time=avg_log_delay,    
+            issue_log_time=avg_log_delay,
             log_repair_time=avg_repair_delay,
             issue_repair_time=avg_duration,
             average_open=avg_open_duration,
@@ -1750,9 +1720,94 @@ def process_TR_report_wos(file_path, creds):
             stow_count=stow_count,
             open_non_stow_count=open_non_stow_count,
             kwh_loss_sum=total_kwh_loss,
-            service=service
+            service=service,
+            sheet_id=sheet_id_map.get(site),
+            metrics_batch=metrics_batch,
+            data_batch=data_batch,
+            insert_params=insert_params,
         )
-    
+
+    # --- Batch delete old WO rows ---
+    sites_ordered = list(insert_params.keys())
+    if sites_ordered:
+        # Phase 1: read completed-WO sections for all sites, then delete in one call
+        p1_ranges = [f"'{s}'!G12:K" for s in sites_ordered]
+        p1_result = _execute_with_retry(service.spreadsheets().values().batchGet(
+            spreadsheetId=TR_REPORT_SHEET_ID, ranges=p1_ranges
+        ))
+        p1_requests = []
+        for vr, s in zip(p1_result.get('valueRanges', []), sites_ordered):
+            req = _build_delete_request(sheet_id_map[s], vr, 12, 'How Repaired', 'End of Reporting Record')
+            if req:
+                p1_requests.append(req)
+        if p1_requests:
+            _execute_with_retry(service.spreadsheets().batchUpdate(
+                spreadsheetId=TR_REPORT_SHEET_ID, body={'requests': p1_requests}
+            ))
+            print(f"Batch deleted completed-WO rows for {len(p1_requests)} sites.")
+
+        # Phase 2: read open-WO sections for all sites (after phase 1 shifted rows), then delete
+        p2_ranges = [f"'{s}'!G16:K" for s in sites_ordered]
+        p2_result = _execute_with_retry(service.spreadsheets().values().batchGet(
+            spreadsheetId=TR_REPORT_SHEET_ID, ranges=p2_ranges
+        ))
+        p2_requests = []
+        for vr, s in zip(p2_result.get('valueRanges', []), sites_ordered):
+            req = _build_delete_request(sheet_id_map[s], vr, 16, 'Problem Description', 'End of Reporting Record')
+            if req:
+                p2_requests.append(req)
+        if p2_requests:
+            _execute_with_retry(service.spreadsheets().batchUpdate(
+                spreadsheetId=TR_REPORT_SHEET_ID, body={'requests': p2_requests}
+            ))
+            print(f"Batch deleted open-WO rows for {len(p2_requests)} sites.")
+
+    # --- Batch insert new WO rows ---
+    completed_insert_reqs = []
+    for s, params in insert_params.items():
+        if params['completed_count'] > 0:
+            completed_insert_reqs.extend(_build_insert_requests(params['sheet_id'], 13, params['completed_count']))
+    if completed_insert_reqs:
+        _execute_with_retry(service.spreadsheets().batchUpdate(
+            spreadsheetId=TR_REPORT_SHEET_ID, body={'requests': completed_insert_reqs}
+        ))
+        print(f"Batch inserted completed-WO rows for qualifying sites.")
+
+    open_insert_reqs = []
+    for s, params in insert_params.items():
+        if params['open_count'] > 0:
+            open_insert_reqs.extend(_build_insert_requests(params['sheet_id'], params['open_start_row'], params['open_count']))
+    if open_insert_reqs:
+        _execute_with_retry(service.spreadsheets().batchUpdate(
+            spreadsheetId=TR_REPORT_SHEET_ID, body={'requests': open_insert_reqs}
+        ))
+        print(f"Batch inserted open-WO rows for qualifying sites.")
+
+    if metrics_batch:
+        _execute_with_retry(service.spreadsheets().values().batchUpdate(
+            spreadsheetId=TR_REPORT_SHEET_ID,
+            body={'valueInputOption': 'USER_ENTERED', 'data': metrics_batch}
+        ))
+        print(f"Batch wrote metrics for {len(metrics_batch)} sites.")
+
+    if data_batch:
+        _execute_with_retry(service.spreadsheets().values().batchUpdate(
+            spreadsheetId=TR_REPORT_SHEET_ID,
+            body={'valueInputOption': 'USER_ENTERED', 'data': data_batch}
+        ))
+        print(f"Batch wrote WO data for {len(data_batch)} ranges.")
+
+    if summary_updates:
+        summary_data = [
+            {'range': f"'OverView'!{TR_CELL_MAPPING[site]}", 'values': [[int(count)]]}
+            for site, count in summary_updates.items()
+        ]
+        _execute_with_retry(service.spreadsheets().values().batchUpdate(
+            spreadsheetId=TR_NUM_SHEET_ID,
+            body={'valueInputOption': 'RAW', 'data': summary_data}
+        ))
+        print(f"Batch updated summary counts for {len(summary_data)} sites.")
+
     dbconnection.close()
     if dt.datetime.now().weekday() < 2: #Monday and Tuesday
         email_pdf_reports(creds) 

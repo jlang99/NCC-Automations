@@ -704,11 +704,18 @@ except Exception as e:
 cb_var = BooleanVar()
 test_var = BooleanVar()
 
-lilyCB_button = Button(root, command= lambda: lilyCB_email(), text= "Lily Internal CB Email", font=("Calibiri", 16), pady= 5, padx= 25, bg='lightblue')
-lilyCB_button.pack(pady= 2)
+_btn_font = ("Calibri", 13)
+_btn_w = 26
+_btn_pad = 3
 
-lily_email_button = Button(root, command= lambda: lily_email_data(), text= "Lily Email", font=("Calibiri", 18), pady= 5, padx= 70, bg='yellow')
-lily_email_button.pack(pady= 2)
+lilyCB_button = Button(root, command=lambda: lilyCB_email(), text="Lily Internal CB Email", font=_btn_font, pady=_btn_pad, width=_btn_w, bg='lightblue')
+lilyCB_button.pack(pady=2)
+
+lily_email_button = Button(root, command=lambda: lily_email_data(), text="Lily Email", font=_btn_font, pady=_btn_pad, width=_btn_w, bg='yellow')
+lily_email_button.pack(pady=2)
+
+personnel_update_button = Button(root, command=lambda: update_Personnel_Sheet(), text="Send Personnel Update", font=_btn_font, pady=_btn_pad, width=_btn_w, bg='lightgreen')
+personnel_update_button.pack(pady=2)
 
 test_frame = Frame(root)
 test_frame.pack()
